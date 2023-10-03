@@ -29,11 +29,14 @@ module part1test(SW, LEDR);
 	input [8:0] SW;
 	output [9:0] LEDR;
 
-	wire [3:0] a, b, s;
-	assign a = SW[7:4];
-	assign b = SW[3:0];
-	assign s = LEDR[3:0];
+	wire [3:0] A, B, S;
+	assign A = SW[7:4];
+	assign B = SW[3:0];
+	wire cin, cout;
+	assign cin = SW[8];
 	
-	part1 U1(a, b, SW[8], s, LEDR[9]);
+	part1 U1 (.a(A), .b(B), .c_in(cin), .s(S), .c_out(cout));
+	assign LEDR[3:0] = S;
+	assign LEDR[9] = cout;
 endmodule
 
