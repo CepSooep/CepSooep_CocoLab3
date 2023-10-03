@@ -74,10 +74,10 @@ module hex_decoder(c, display);
 endmodule
 
 //*********for testing*************************************
-module hex(SW, HEX0);
+module hex(SW, HEX);
 	input [3:0] SW;
-	output [6:0] HEX0;
-	hex_decoder H1(SW, HEX0);	
+	output [6:0] HEX;
+	hex_decoder H1(SW, HEX);	
 endmodule
 
 
@@ -111,10 +111,14 @@ module part2(A, B, Function, ALUout);
 	end
 endmodule
 
-module part2test(SW, LEDR, KEY);
+module part2test(SW, LEDR, KEY, HEX0, HEX2, HEX3, HEX4);
 	input [9:0] SW;
 	input [1:0] KEY;
 	output [7:0] LEDR;
+	output [6:0] HEX0;
+	output [6:0] HEX2;
+	output [6:0] HEX3;
+	output [6:0] HEX4;
 
 	wire [3:0] a, b;
 	wire [1:0] f;
@@ -122,8 +126,8 @@ module part2test(SW, LEDR, KEY);
 
 	assign a = SW[7:4];
 	assign b = SW[3:0];
-	assign f = ~KEY[1:0]; //when a not pressed = 0
-	assign out = LEDR[7:0];
+	assign f = KEY[1:0]; //when a not pressed = 1
+	assign LEDR[7:0] = out;
 	
 	wire [3:0] w1;
 	wire [3:0] w2;
