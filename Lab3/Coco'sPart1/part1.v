@@ -19,4 +19,21 @@ module part1(a, b, c_in, s, c_out);
 endmodule
 
 
+//a -> SW 7-4
+//b -> SW 3-0
+//cin -> SW 8
+// S -> LED 3-0
+// cout -> LED 9
+
+module part1test(SW, LEDR);
+	input [8:0] SW;
+	output [9:0] LEDR;
+
+	wire [3:0] a, b, s;
+	assign a = SW[7:4];
+	assign b = SW[3:0];
+	assign s = LEDR[3:0];
+	
+	part1 U1(a, b, SW[8], s, LEDR[9]);
+endmodule
 
