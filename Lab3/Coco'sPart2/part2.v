@@ -49,6 +49,37 @@ module coutAdder(cout, s, addOut);
 	assign addOut = {{3'b000, cout}, s}; 
 endmodule
 
+module hex_decoder(c, display);
+	input [3:0] c;
+	output [6:0] display;
+	
+	wire c0, c1, c2, c3; //for the ease of typing (they are not wires)
+	assign c0 = c[0];
+	assign c1 = c[1];
+	assign c2 = c[2];
+	assign c3 = c[3];
+
+	wire [6:0] inverted; //I messed up, everything is inverted
+
+	assign inverted[0] = ~c2&~c0 | ~c3&c2&c0 | c2&c1 | c3&~c2&~c1 | c3&~c0 | ~c3&c1;
+	assign inverted[1] = ~c3&~c1&~c0 | ~c2&~c1 | ~c2&~c0 | ~c3&c1&c0 | c3&~c1&c0;
+	assign inverted[2] = ~c2&~c1 | ~c2&c0 | ~c1&c0 | ~c3&c2 | c3&~c2;
+	assign inverted[3] = ~c3&~c2&~c0 | ~c2&c1&c0 | c2&~c1&c0 | c2&c1&~c0 | c3&~c1;
+	assign inverted[4] = ~c2&~c0 | c1&~c0 | c3&c1 |c3&c2;
+	assign inverted[5] = ~c1&~c0 | ~c3&c2&~c1 | c2&~c0 | c3&~c2 | c3&c1;
+	assign inverted[6] = ~c2&c1 | c1&~c0 | ~c3&c2&~c1 | c3&~c2 | c3&c0;
+	
+	assign display = ~inverted;
+
+endmodule
+
+//*********for testing*************************************
+module hex(SW, HEX0);
+	input [3:0] SW;
+	output [6:0] HEX0;
+	hex_decoder H1(SW, HEX0);	
+endmodule
+
 
 module part2(A, B, Function, ALUout);
 	input [3:0] A, B;
@@ -79,4 +110,37 @@ module part2(A, B, Function, ALUout);
 		endcase
 	end
 endmodule
-		
+
+module part2test(SW, LEDR, KEY);
+	input [9:0] SW;
+	input [1:0] KEY;
+	output [7:0] LEDR;
+
+	wire [3:0] a, b;
+	wire [1:0] f;
+	wire [7:0] out;
+
+	assign a = SW[7:4];
+	assign b = SW[3:0];
+	assign f = ~KEY[1:0]; //when a not pressed = 0
+	assign out = LEDR[7:0];
+	
+	wire [3:0] w1;
+	wire [3:0] w2;
+	wire [3:0] w3;
+	wire [3:0] w4;
+
+	assign w1 = a;
+	assign w2 = b;
+	assign w3 = LEDR[3:0];
+	assign w4 = LEDR[7:4];
+
+	hex H2(w1, HEX2);
+	hex H0(w2, HEX0);
+	hex H3(w3, HEX3);
+	hex H4(w4, HEX4);
+	
+	part2 U2(a, b, f, out);
+endmodule
+
+	
