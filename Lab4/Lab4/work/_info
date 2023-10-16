@@ -1,0 +1,71 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Users/karth/Documents/School_Folder/Second_Year_Sem1/Digital_Systems/Lab4
+vD_flip_flop
+Z1 !s110 1697416421
+!i10b 1
+!s100 e4nMNknKilXm5KIM3RF1o2
+I:C0NANBfMk=@ELAdK_Cd[3
+Z2 VDg1SIo80bB@j0V0VzS_@n1
+R0
+Z3 w1697416387
+Z4 8lab4part2.v
+Z5 Flab4part2.v
+L0 1
+Z6 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z7 !s108 1697416421.000000
+Z8 !s107 lab4part2.v|
+Z9 !s90 -reportprogress|300|lab4part2.v|
+!i113 1
+Z10 tCvgOpt 0
+n@d_flip_flop
+vfour_bit_register
+R1
+!i10b 1
+!s100 7hXiT4H;9RgIW8LhckeZW0
+I;YgUR<zIC:0k4Q3`DEdih0
+R2
+R0
+R3
+R4
+R5
+L0 11
+R6
+r1
+!s85 0
+31
+R7
+R8
+R9
+!i113 1
+R10
+vpart2
+R1
+!i10b 1
+!s100 67Z;8?]eZ:8jkSab;6_h32
+IPzJO=WS5JLZ3i?Kzd9WB_3
+R2
+R0
+R3
+R4
+R5
+L0 31
+R6
+r1
+!s85 0
+31
+R7
+R8
+R9
+!i113 1
+R10
