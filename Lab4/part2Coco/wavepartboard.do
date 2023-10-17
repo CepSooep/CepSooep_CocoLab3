@@ -12,17 +12,18 @@ vsim part2Board
 log {/*}
 # add wave {/*} would add all items in top level simulation module
 add wave {/*}
+add wave -position end  sim:/part2Board/main/ALUout
 
 
-force {KEY[0]} 1 0, 0 6ns -repeat 12ns
+force {KEY[1]} 1 0, 0 6ns -repeat 12ns
 #######
 force {SW[9:8]} 2'b00
 
-force {KEY[1]} 0
+force {KEY[0]} 0
 force {SW[3:0]} 4'b1111
 run 10ns
 
-force {KEY[1]} 1
+force {KEY[0]} 1
 force {SW[3:0]} 4'b0101
 run 15ns
 

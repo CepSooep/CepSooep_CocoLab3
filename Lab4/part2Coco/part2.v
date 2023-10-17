@@ -5,7 +5,9 @@ module part2Board(KEY, SW, LEDR, HEX0, HEX1, HEX4, HEX3);
 	output [6:0] HEX0, HEX1, HEX4, HEX3;
 
 	wire [7:0] mainOut;
-	part2 main(KEY[1], ~KEY[0], SW[3:0], SW[9:8], mainOut);
+	wire reset;
+	assign reset = ~KEY[0];
+	part2 main(KEY[1], reset, SW[3:0], SW[9:8], mainOut);
 	assign LEDR[7:0] = mainOut;
 
 
