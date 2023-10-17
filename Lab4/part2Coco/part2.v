@@ -1,8 +1,8 @@
-module part2Board(KEY, SW, LEDR, HEX0, HEX1, HEX4, HEX5);
+module part2Board(KEY, SW, LEDR, HEX0, HEX1, HEX4, HEX3);
 	input [1:0] KEY;
 	input [9:0] SW ;
 	output [7:0] LEDR;
-	output [6:0] HEX0, HEX1, HEX4, HEX5;
+	output [6:0] HEX0, HEX1, HEX4, HEX3;
 
 	wire [7:0] mainOut;
 	part2 main(KEY[1], ~KEY[0], SW[3:0], SW[9:8], mainOut);
@@ -10,7 +10,7 @@ module part2Board(KEY, SW, LEDR, HEX0, HEX1, HEX4, HEX5);
 
 
 	hex H0(SW[3:0], HEX0);
-	hex H1({0,SW[9:8]}, HEX1);
+	hex H1({2'b00,SW[9:8]}, HEX1);
 	hex H4(mainOut[7:4], HEX4);
 	hex H3(mainOut[3:0], HEX3);
 endmodule
