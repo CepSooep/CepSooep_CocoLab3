@@ -27,7 +27,7 @@ module part2 (Clock, Reset_b, Data, Function, ALUout);
             0: q = Data + ALUout[3:0];
             1: q = Data * ALUout[3:0]; 
             2: q = ALUout << Data;  
-            3: q = {Data, ALUout[3:0]};
+            3: q = {ALUout[7:0]};
             default: q = 8'b00000000;
         endcase
     end
