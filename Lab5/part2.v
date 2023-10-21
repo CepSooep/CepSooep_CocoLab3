@@ -8,7 +8,7 @@ module part2board (CLOCK_50, SW[9], SW[1:0], HEX0);
 	hex H0(hexWire, HEX0);
 endmodule
 
-module part2 #(parameter CLOCK_FREQUENCY = 50000000)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
+module part2 #(parameter CLOCK_FREQUENCY = 500)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
 	wire EnableDC;
 	RateDivider RD(.ClockIn(ClockIn), .Reset(Reset), .Speed(Speed), .Enable(EnableDC));
 	DisplayCounter CD(.Clock(ClockIn), .Reset(Reset), .EnableDC(EnableDC), .CounterValue(CounterValue));
@@ -20,13 +20,16 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	
 	always @(posedge Clock) begin
 		if(Reset) CounterRegOut <= 4'b0000;
-		else if(EnableDC == 1) CounterRegOut <= CounterRegOut + 1;
-		else CounterRegOut <= CounterRegOut;
-	end
+		else begin
+			 @(posedge EnableDC) //counter counts at posedge of enable
+				CounterRegOut <= CounterRegOut + 1;
+		end
+			
+end
 	assign CounterValue = CounterRegOut;
 endmodule
 
-module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
+module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
     
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
     
@@ -39,19 +42,16 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input
 	
     reg [$clog2(MAXN):0] counter; //reg is max sized right now
 
-    always @(posedge ClockIn, posedge Reset) begin
+    always @(posedge ClockIn, negedge Reset) begin
         if(Speed == 2'b00)
-            N = tempStorage0;
+            N <= tempStorage0;
         else if(Speed == 2'b01)
-           N = tempStorage1;
+           N <= tempStorage1;
         else if(Speed == 2'b10)
-            N = tempStorage2;
+            N <= tempStorage2;
         else if(Speed == 2'b11)
-            N = tempStorage3;
-        end
+            N <= tempStorage3;
         
-        
-        always @(posedge ClockIn, negedge Reset) begin
 
         if(Reset)
             counter <= {($clog2(MAXN)+1){1'b1}}; 
@@ -67,7 +67,9 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input
             counter <= counter - 1;
 
     end
-    assign Enable = (counter[$clog2(N)] == 0)?'1:0;  
+
+		
+    assign Enable = (counter[$clog2(N)] == 0)?ClockIn:0;  
 endmodule
     
 
