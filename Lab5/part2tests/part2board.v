@@ -18,17 +18,25 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	 //4bit
 	reg [3:0] CounterRegOut;
 	
-	always @(posedge EnableDC) begin
+	always @(posedge Clock) begin
 		if(Reset) CounterRegOut <= 4'b0000;
-		else CounterRegOut <= CounterRegOut+1;
+		else if(EnableDC) CounterRegOut <= CounterRegOut+1;
 	end
 	assign CounterValue = CounterRegOut;
 endmodule
+
+
 module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
-    
+
+
+    parameter clock1 = $clog2(CLOCK_FREQUENCY);
+	 parameter clock2 = $clog2(CLOCK_FREQUENCY*2);
+	 parameter clock3 = $clog2(CLOCK_FREQUENCY*4);
+	 
+	 
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
-    reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nholder;
-	 reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nprev;
+   
+	
     parameter MAXN = (4*CLOCK_FREQUENCY);
     wire [($clog2(4*CLOCK_FREQUENCY)-1):0] tempStorage0,tempStorage1, tempStorage2, tempStorage3;
     assign tempStorage0 = 1;
@@ -48,47 +56,39 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input
         else if(Speed == 2'b11)
             N <= tempStorage3;
     end
-	
-always @(posedge ClockIn) begin
-        if(Reset) begin
-            	counter <= {{($clog2(MAXN)){1'b1}}}; 
-		//all ones, even the leftmost bits that we dont care about
-		Nholder <= N;
-		Nprev = N;
-	end
-	
-	else if(Nholder == 1) begin//enable always high
-		counter <= {($clog2(MAXN)+1){1'b1}};
-		Nholder <= N;
-		Nprev <= N;
-	end
 
-	else if((Nholder == 1 &&counter[0] == 0)||
-	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
-	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
-	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0)) begin
-		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
-		Nholder <= N;
-		Nprev <= N;
+reg [($clog2(4*CLOCK_FREQUENCY)-1):0] c;
+always @(posedge ClockIn) begin
+			if (Speed == 2'b00) c <= 1/CLOCK_FREQUENCY;
+			if (Speed == 2'b01) c <= 1;
+			if (Speed == 2'b10) c <= 2;
+			if (Speed == 2'b11) c <= 4;
+			
+			
+
+        if(Reset) begin
+            	counter <= {CLOCK_FREQUENCY*c};//c is reg 
+		
+		
 	end
-	else if((Nprev == 1 &&counter[0] == 0)||
-	(Nprev == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
-	(Nprev == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
-	(Nprev == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0)) begin
-		counter <= {($clog2(MAXN)+1){1'b1}};
-		Nholder <= N;
-		Nprev <= N;
+	
+	//else if(Speed == 2'b00) begin//enable always high
+		//counter <= {($clog2(MAXN)+1){1'b1}};
+		//Nholder <= N;
+		
+	//end
+
+	else if(counter == 0)
+	 begin
+		counter <= {CLOCK_FREQUENCY*c}; 
+		
 	end
         
 	else
             counter <= counter - 1;
 
 end
-    assign Enable = ((Nholder == 1 &&counter[$clog2(1)] == 1)||
-	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
-	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
-	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))
-	?ClockIn:0;  
+    assign Enable = (counter == 0)?1:0;  
 endmodule
 	
 module hex_decoder(c, display);
