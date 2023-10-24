@@ -8,7 +8,7 @@ module part2board (CLOCK_50, SW[9], SW[1:0], HEX0);
 	hex H0(hexWire, HEX0);
 endmodule
 
-module part2 #(parameter CLOCK_FREQUENCY = 50000000)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
+module part2 #(parameter CLOCK_FREQUENCY = 500)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
 	wire EnableDC;
 	RateDivider RD(.ClockIn(ClockIn), .Reset(Reset), .Speed(Speed), .Enable(EnableDC));
 	DisplayCounter CD(.Clock(ClockIn), .Reset(Reset), .EnableDC(EnableDC), .CounterValue(CounterValue));
@@ -24,15 +24,15 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	end
 	assign CounterValue = CounterRegOut;
 endmodule
-module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
+module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
     
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nholder;
 	 reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nprev;
     parameter MAXN = (4*CLOCK_FREQUENCY);
     wire [($clog2(4*CLOCK_FREQUENCY)-1):0] tempStorage0,tempStorage1, tempStorage2, tempStorage3;
-    assign tempStorage0 = CLOCK_FREQUENCY/CLOCK_FREQUENCY;
-    assign tempStorage1 = CLOCK_FREQUENCY/1;
+    assign tempStorage0 = 1;
+    assign tempStorage1 = CLOCK_FREQUENCY;
     assign tempStorage2 = CLOCK_FREQUENCY*2;
     assign tempStorage3 = CLOCK_FREQUENCY*4;
 	
@@ -47,58 +47,50 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input
             N <= tempStorage2;
         else if(Speed == 2'b11)
             N <= tempStorage3;
-    end 
- always @(posedge ClockIn) begin
+    end
+	
+always @(posedge ClockIn) begin
         
-	if(~Reset && Nholder == tempStorage0) //enable always high
+	
+	if(Nholder == 1&& ~Reset) begin//enable always high
 		counter <= {($clog2(MAXN)+1){1'b0}};
-	else if(~Reset && Nholder == tempStorage1 && counter[$clog2(CLOCK_FREQUENCY/1)] == 0) 
-		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
-	else if(~Reset && Nholder == tempStorage2 && counter[$clog2(CLOCK_FREQUENCY*2)] == 0) 
-		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
-	else if(~Reset && Nholder == tempStorage3 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0) 
-		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
-       
-	else if(Reset)
-            counter <= {{($clog2(MAXN)){1'b1}}}; 
+		Nholder <= N;
+		Nprev <= N;
+	end
+	else if(Reset) begin
+            	counter <= {{($clog2(MAXN)){1'b1}}}; 
 		//all ones, even the leftmost bits that we dont care about
-	 else
+		Nholder <= N;
+		Nprev = N;
+	end
+	else if(~Reset&&((Nholder == 1 &&counter[0] == 0)||
+	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
+	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
+	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))) begin
+		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
+		Nholder <= N;
+		Nprev <= N;
+	end
+	else if((Nprev == 1 &&counter[0] == 0)||
+	(Nprev == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
+	(Nprev == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
+	(Nprev == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0)) begin
+		counter <= {($clog2(MAXN)+1){1'b1}};
+		Nholder <= N;
+		Nprev <= N;
+	end
+        
+	else
             counter <= counter - 1;
 
-    end
-
-	always @(*) begin
-		if(Reset) begin
-			Nholder <= N;
-			Nprev <= N;
-			//counter <= {{($clog2(MAXN)){1'b1}}};
-		end
-		else if(Nholder == tempStorage1 && counter[$clog2(CLOCK_FREQUENCY/1)] == 0) begin
-			Nholder <= N;
-			Nprev <= N;
-		end
-		else if(Nholder == tempStorage2 && counter[$clog2(CLOCK_FREQUENCY*2)] == 0) begin
-			Nholder <= N;
-			Nprev <= N;
-		end
-		else if(Nholder == tempStorage3 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0) begin
-			Nholder <= N;
-			Nprev <= N;
-		end
-		
-		//if(Nprev == tempStorage3 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0) 
-			//counter <= {{{($clog2(MAXN)+1){1'b1}}}};
-		//else if(Nprev == tempStorage2 && counter[$clog2(CLOCK_FREQUENCY*2)]  == 0) 
-			//counter <= {{{($clog2(MAXN)+1){1'b1}}}};
-		//else if(Nprev == tempStorage1 && counter[$clog2(CLOCK_FREQUENCY/1)] == 0) 
-			//counter <= {{{($clog2(MAXN)+1){1'b1}}}};
-	end
-		
-    assign Enable = ((Nholder == 1 && counter[$clog2(1)] == 0)||(Nholder == CLOCK_FREQUENCY && counter[$clog2(CLOCK_FREQUENCY)] == 0)
-	 || (Nholder == CLOCK_FREQUENCY*2 && counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))
-	 ?ClockIn:0;  
+end
+    assign Enable = ((Nholder == 1 &&counter[$clog2(1)] == 0)||
+	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
+	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
+	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))
+	?ClockIn:0;  
 endmodule
-
+	
 module hex_decoder(c, display);
 	input [3:0] c;
 	output [6:0] display;
