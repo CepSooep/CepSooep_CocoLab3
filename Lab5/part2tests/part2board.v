@@ -8,7 +8,7 @@ module part2board (CLOCK_50, SW[9], SW[1:0], HEX0);
 	hex H0(hexWire, HEX0);
 endmodule
 
-module part2 #(parameter CLOCK_FREQUENCY = 500)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
+module part2 #(parameter CLOCK_FREQUENCY = 50000000)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
 	wire EnableDC;
 	RateDivider RD(.ClockIn(ClockIn), .Reset(Reset), .Speed(Speed), .Enable(EnableDC));
 	DisplayCounter CD(.Clock(ClockIn), .Reset(Reset), .EnableDC(EnableDC), .CounterValue(CounterValue));
@@ -18,14 +18,13 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	 //4bit
 	reg [3:0] CounterRegOut;
 	
-	always @(posedge Clock) begin
+	always @(posedge EnableDC) begin
 		if(Reset) CounterRegOut <= 4'b0000;
-		else if(EnableDC) CounterRegOut <= CounterRegOut + 1;
-		else CounterRegOut <= CounterRegOut;
+		else CounterRegOut <= CounterRegOut+1;
 	end
 	assign CounterValue = CounterRegOut;
 endmodule
-module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
+module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
     
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nholder;
