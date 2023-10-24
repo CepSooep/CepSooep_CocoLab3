@@ -8,7 +8,7 @@ module part2board (CLOCK_50, SW[9], SW[1:0], HEX0);
 	hex H0(hexWire, HEX0);
 endmodule
 
-module part2 #(parameter CLOCK_FREQUENCY = 500)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
+module part2 #(parameter CLOCK_FREQUENCY = 50000000)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
 	wire EnableDC;
 	RateDivider RD(.ClockIn(ClockIn), .Reset(Reset), .Speed(Speed), .Enable(EnableDC));
 	DisplayCounter CD(.Clock(ClockIn), .Reset(Reset), .EnableDC(EnableDC), .CounterValue(CounterValue));
@@ -18,21 +18,17 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	 //4bit
 	reg [3:0] CounterRegOut;
 	
-	always @(posedge Clock) begin
+	always @(posedge EnableDC) begin
 		if(Reset) CounterRegOut <= 4'b0000;
-		else begin
-			 @(posedge EnableDC) //counter counts at posedge of enable
-				CounterRegOut <= CounterRegOut + 1;
-		end
-			
-end
+		else CounterRegOut <= CounterRegOut + 1;
+	end
 	assign CounterValue = CounterRegOut;
 endmodule
-
-module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
+module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
     
     reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
-    
+    reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nholder;
+	 reg [($clog2(4*CLOCK_FREQUENCY)-1):0] Nprev;
     parameter MAXN = (4*CLOCK_FREQUENCY);
     wire [($clog2(4*CLOCK_FREQUENCY)-1):0] tempStorage0,tempStorage1, tempStorage2, tempStorage3;
     assign tempStorage0 = CLOCK_FREQUENCY/CLOCK_FREQUENCY;
@@ -42,7 +38,7 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Rese
 	
     reg [$clog2(MAXN):0] counter; //reg is max sized right now
 
-    always @(posedge ClockIn, negedge Reset) begin
+    always @(*) begin
         if(Speed == 2'b00)
             N <= tempStorage0;
         else if(Speed == 2'b01)
@@ -51,28 +47,35 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Rese
             N <= tempStorage2;
         else if(Speed == 2'b11)
             N <= tempStorage3;
-        
-
+    end 
+ always @(posedge ClockIn, negedge Reset) begin
         if(Reset)
-            counter <= {($clog2(MAXN)+1){1'b1}}; 
+            counter <= {{($clog2(MAXN)){1'b1}}}; 
 		//all ones, even the leftmost bits that we dont care about
-	else if(Speed == 2'b00) 
+	else if(Nholder == tempStorage0) //enable always high
 		counter <= {($clog2(MAXN)+1){1'b0}};
-		// counter is all 0 to trigger enable at each clock tick
-		// it's just always 1, not a pulse - does that work?
-
-	else if(counter[$clog2(N)] == 0) 
-		counter <= {($clog2(MAXN)+1){1'b1}}; 
+	else if(counter[$clog2(Nholder)] == 0) 
+		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
         else
             counter <= counter - 1;
 
     end
 
+	always @(*) begin
+		if(Reset) begin
+			Nholder = N;
+			Nprev = N;
+		end
+		else if(~counter[$clog2(Nholder)]) begin
+			Nholder <= N;
+			Nprev <= N;
+		end
+		if(counter[$clog2(Nprev)] == 0) 
+			counter = {{{($clog2(MAXN)+1){1'b1}}}};
+	end
 		
-    assign Enable = (counter[$clog2(N)] == 0)?ClockIn:0;  
+    assign Enable = (counter[$clog2(Nholder)] == 0)?ClockIn:0;  
 endmodule
-    
-
 
 module hex_decoder(c, display);
 	input [3:0] c;
