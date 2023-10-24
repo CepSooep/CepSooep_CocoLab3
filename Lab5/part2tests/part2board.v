@@ -18,9 +18,10 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 	 //4bit
 	reg [3:0] CounterRegOut;
 	
-	always @(posedge EnableDC) begin
+	always @(posedge Clock) begin
 		if(Reset) CounterRegOut <= 4'b0000;
-		else CounterRegOut <= CounterRegOut + 1;
+		else if(EnableDC) CounterRegOut <= CounterRegOut + 1;
+		else CounterRegOut <= CounterRegOut;
 	end
 	assign CounterValue = CounterRegOut;
 endmodule
@@ -49,24 +50,24 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Rese
             N <= tempStorage3;
     end
 	
-always @(posedge ClockIn) begin
-        
-	
-	if(Nholder == 1&& ~Reset) begin//enable always high
-		counter <= {($clog2(MAXN)+1){1'b0}};
-		Nholder <= N;
-		Nprev <= N;
-	end
-	else if(Reset) begin
+always @(posedge ClockIn, negedge Reset) begin
+        if(Reset) begin
             	counter <= {{($clog2(MAXN)){1'b1}}}; 
 		//all ones, even the leftmost bits that we dont care about
 		Nholder <= N;
 		Nprev = N;
 	end
-	else if(~Reset&&((Nholder == 1 &&counter[0] == 0)||
+	
+	else if(Nholder == 1) begin//enable always high
+		counter <= {($clog2(MAXN)+1){1'b1}};
+		Nholder <= N;
+		Nprev <= N;
+	end
+
+	else if((Nholder == 1 &&counter[0] == 0)||
 	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
 	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
-	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))) begin
+	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0)) begin
 		counter <= {{($clog2(MAXN)+1){1'b1}}}; 
 		Nholder <= N;
 		Nprev <= N;
@@ -84,7 +85,7 @@ always @(posedge ClockIn) begin
             counter <= counter - 1;
 
 end
-    assign Enable = ((Nholder == 1 &&counter[$clog2(1)] == 0)||
+    assign Enable = ((Nholder == 1 &&counter[$clog2(1)] == 1)||
 	(Nholder == CLOCK_FREQUENCY&&counter[$clog2(CLOCK_FREQUENCY)] == 0)||
 	(Nholder == CLOCK_FREQUENCY*2 &&counter[$clog2(CLOCK_FREQUENCY*2)] == 0)||
 	(Nholder == CLOCK_FREQUENCY*4 && counter[$clog2(CLOCK_FREQUENCY*4)] == 0))
