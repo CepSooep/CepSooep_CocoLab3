@@ -50,7 +50,7 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Rese
             N <= tempStorage3;
     end
 	
-always @(posedge ClockIn, negedge Reset) begin
+always @(posedge ClockIn) begin
         if(Reset) begin
             	counter <= {{($clog2(MAXN)){1'b1}}}; 
 		//all ones, even the leftmost bits that we dont care about
