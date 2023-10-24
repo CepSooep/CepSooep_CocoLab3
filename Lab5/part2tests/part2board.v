@@ -1,4 +1,4 @@
-module part2board (CLOCK_50, SW[9], SW[1:0], HEX0);
+module part2board (CLOCK_50, SW, HEX0);
 	input CLOCK_50;
 	input [9:0] SW;
 	output [6:0] HEX0;
