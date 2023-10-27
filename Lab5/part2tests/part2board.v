@@ -8,7 +8,7 @@ module part2board (CLOCK_50, SW, HEX0);
 	hex H0(hexWire, HEX0);
 endmodule
 
-module part2 #(parameter CLOCK_FREQUENCY = 50000000)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
+module part2 #(parameter CLOCK_FREQUENCY = 500)(input ClockIn, input Reset, input [1:0] Speed, output [3:0] CounterValue);
 	wire EnableDC;
 	RateDivider RD(.ClockIn(ClockIn), .Reset(Reset), .Speed(Speed), .Enable(EnableDC));
 	DisplayCounter CD(.Clock(ClockIn), .Reset(Reset), .EnableDC(EnableDC), .CounterValue(CounterValue));
@@ -26,7 +26,7 @@ module DisplayCounter (input Clock,input Reset,input EnableDC,output [3:0] Count
 endmodule
 
 
-module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
+module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
 
     parameter MAXN = (4*CLOCK_FREQUENCY);
 	
