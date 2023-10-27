@@ -28,55 +28,29 @@ endmodule
 
 module RateDivider #(parameter CLOCK_FREQUENCY = 50000000) (input ClockIn, input Reset, input [1:0] Speed, output Enable);
 
-
-    parameter clock1 = $clog2(CLOCK_FREQUENCY);
-	 parameter clock2 = $clog2(CLOCK_FREQUENCY*2);
-	 parameter clock3 = $clog2(CLOCK_FREQUENCY*4);
-	 
-	 
-    reg [($clog2(4*CLOCK_FREQUENCY)-1):0] N; //#of clock cycles per pulse
-   
-	
     parameter MAXN = (4*CLOCK_FREQUENCY);
-    wire [($clog2(4*CLOCK_FREQUENCY)-1):0] tempStorage0,tempStorage1, tempStorage2, tempStorage3;
-    assign tempStorage0 = 1;
-    assign tempStorage1 = CLOCK_FREQUENCY;
-    assign tempStorage2 = CLOCK_FREQUENCY*2;
-    assign tempStorage3 = CLOCK_FREQUENCY*4;
 	
     reg [$clog2(MAXN):0] counter; //reg is max sized right now
 
-    always @(*) begin
-        if(Speed == 2'b00)
-            N <= tempStorage0;
-        else if(Speed == 2'b01)
-           N <= tempStorage1;
-        else if(Speed == 2'b10)
-            N <= tempStorage2;
-        else if(Speed == 2'b11)
-            N <= tempStorage3;
-    end
-
+  
 reg [($clog2(4*CLOCK_FREQUENCY)-1):0] c;
-always @(posedge ClockIn) begin
-			if (Speed == 2'b00) c <= 1/CLOCK_FREQUENCY;
-			if (Speed == 2'b01) c <= 1;
-			if (Speed == 2'b10) c <= 2;
-			if (Speed == 2'b11) c <= 4;
-			
-			
 
+always @(*) begin
+	if (Speed == 2'b00) c <= 1/CLOCK_FREQUENCY;
+	if (Speed == 2'b01) c <= 1;
+	if (Speed == 2'b10) c <= 2;
+	if (Speed == 2'b11) c <= 4;
+end
+
+
+
+
+always @(posedge ClockIn) begin
         if(Reset) begin
             	counter <= {CLOCK_FREQUENCY*c};//c is reg 
 		
 		
 	end
-	
-	//else if(Speed == 2'b00) begin//enable always high
-		//counter <= {($clog2(MAXN)+1){1'b1}};
-		//Nholder <= N;
-		
-	//end
 
 	else if(counter == 0)
 	 begin
@@ -88,7 +62,7 @@ always @(posedge ClockIn) begin
             counter <= counter - 1;
 
 end
-    assign Enable = (counter == 0)?1:0;  
+    assign Enable = (counter != 0)?0:1;  
 endmodule
 	
 module hex_decoder(c, display);
