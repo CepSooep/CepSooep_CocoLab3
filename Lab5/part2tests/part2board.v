@@ -46,17 +46,24 @@ end
 
 
 always @(posedge ClockIn) begin
-        if(Reset) begin
-            	counter <= {CLOCK_FREQUENCY*c};//c is reg 
+        if(Reset && Speed != 2'b00) begin
+            	counter <= {CLOCK_FREQUENCY*c-1};//c is reg 
+		
+		
+	end
+	else if(Reset && Speed == 2'b00) begin
+            	counter <= {0};
 		
 		
 	end
 
-	else if(counter == 0)
-	 begin
-		counter <= {CLOCK_FREQUENCY*c}; 
+
+	else if(counter == 0 && Speed == 2'b00) 
+            	counter <= {0};
 		
-	end
+	
+	else if(counter == 0)
+		counter <= {CLOCK_FREQUENCY*c-1}; 
         
 	else
             counter <= counter - 1;
