@@ -4,7 +4,7 @@ module part3 #(parameter CLOCK_FREQUENCY=500)(
     input wire Start,
     input wire [2:0] Letter,
     output wire DotDashOut,
-    output wire NewBitOut
+    output wire NewBitfOut
 );
     reg [12:0]letterHolder;
     reg shift;
@@ -12,6 +12,7 @@ module part3 #(parameter CLOCK_FREQUENCY=500)(
     wire [12:0]letterReader;
     wire [12:0]newBitStore;
     wire halfClock;
+    wire NewBitPeriodic; //pulses every 0.25s
 
     RateDivider cockSpliter(ClockIn, Reset, 2'b01, halfClock);
     shiftReg shifter(letterHolder, halfClock, Reset, letterReader, Start);
@@ -34,6 +35,11 @@ module part3 #(parameter CLOCK_FREQUENCY=500)(
         else if(Letter == 3'b111)
             letterHolder = 13'b0101010100000;
     end
+    
+    RateDivider newBitSpitter(ClockIn, Reset, 2'b10, NewBitPeriodic); 
+    //idk if reset supposed to work in same way as cockSpliter
+    //output pulses every 0.25s
+
 
     assign DotDashOut = letterReader[12];
 
@@ -87,7 +93,9 @@ always @(*) begin //unused
 	if (Speed == 2'b11) c <= 4;
 end
 wire [$clog2(MAXN):0] cnew;
-assign cnew = CLOCK_FREQUENCY/2-1;
+assign cnew = (speed == 2b'01)?CLOCK_FREQUENCY/2-1 : CLOCK_FREQUENCY/4;
+//if speed == 01, tick every 0.5s
+//if speed != 01, tick every 0.25s
 
 
 
@@ -108,5 +116,4 @@ always @(posedge ClockIn) begin
 end
     assign Enable = (counter != 0)?0:1;  
 endmodule
-
                 
