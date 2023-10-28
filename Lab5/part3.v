@@ -80,35 +80,27 @@ module RateDivider #(parameter CLOCK_FREQUENCY = 500) (input ClockIn, input Rese
   
 reg [($clog2(4*CLOCK_FREQUENCY)-1):0] c;
 
-always @(*) begin
+always @(*) begin //unused
 	if (Speed == 2'b00) c <= 1/CLOCK_FREQUENCY;
-	if (Speed == 2'b01) c <= 1;
+	if (Speed == 2'b01) c <= 1/2;
 	if (Speed == 2'b10) c <= 2;
 	if (Speed == 2'b11) c <= 4;
 end
-
+wire [$clog2(MAXN):0] cnew;
+assign cnew = CLOCK_FREQUENCY/2-1;
 
 
 
 always @(posedge ClockIn) begin
-        if(Reset && Speed != 2'b00) begin
-            	counter <= {CLOCK_FREQUENCY*c-1};//c is reg 
-		
-		
-	end
-	else if(Reset && Speed == 2'b00) begin
-            	counter <= {0};
-		
-		
-	end
-
-
-	else if(counter == 0 && Speed == 2'b00) 
-            	counter <= {0};
+        if(Reset) begin
+            	counter <= {cnew};//c is reg 
 		
 	
+	end
+
+
 	else if(counter == 0)
-		counter <= {CLOCK_FREQUENCY*c-1}; 
+		counter <= {cnew}; 
         
 	else
             counter <= counter - 1;
