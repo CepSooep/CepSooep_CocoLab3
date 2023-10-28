@@ -4,7 +4,7 @@ module part3 #(parameter CLOCK_FREQUENCY=500)(
     input wire Start,
     input wire [2:0] Letter,
     output wire DotDashOut,
-    output wire NewBitfOut
+    output wire NewBitOut
 );
     reg [12:0]letterHolder;
     reg shift;
@@ -12,36 +12,59 @@ module part3 #(parameter CLOCK_FREQUENCY=500)(
     wire [12:0]letterReader;
     wire [12:0]newBitStore;
     wire halfClock;
-    wire NewBitPeriodic; //pulses every 0.25s
+    reg [12:0]newBitShitter;
+    wire [12:0]smthStore;
+    reg newBitOutReseter;
+    reg smth;
 
-    RateDivider cockSpliter(ClockIn, Reset, 2'b01, halfClock);
+    RateDivider cockSpliter(ClockIn, Start, 2'b01, halfClock);
     shiftReg shifter(letterHolder, halfClock, Reset, letterReader, Start);
+    shiftReg shitter(newBitShitter, halfClock, Reset, smthStore, Start);
+       
     
+        
+
     always@(Letter)begin
-        if(Letter == 3'b000)
-            letterHolder = 13'b0101110000000;
-        else if(Letter == 3'b001)
-            letterHolder = 13'b0111010101000;
-        else if(Letter == 3'b010)
-            letterHolder = 13'b0111010111010;
-        else if(Letter == 3'b011)
-            letterHolder = 13'b0111010100000;
-        else if(Letter == 3'b100)
-            letterHolder = 13'b0100000000000;
-        else if(Letter == 3'b101)
-            letterHolder = 13'b0101011101000;
-        else if(Letter == 3'b110)
-            letterHolder = 13'b0111011101000;
-        else if(Letter == 3'b111)
-            letterHolder = 13'b0101010100000;
+        
+
+        if(Letter == 3'b000) begin
+            letterHolder = 	13'b0101110000000;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b001) begin
+            letterHolder = 	13'b0111010101000;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b010) begin
+            letterHolder = 	13'b0111010111010;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b011) begin
+            letterHolder = 	13'b0111010100000;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b100) begin
+            letterHolder = 	13'b0100000000000;
+            newBitShitter = 	13'b1111111111111;
+        end 
+        else if(Letter == 3'b101) begin
+            letterHolder = 	13'b0101011101000;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b110) begin
+            letterHolder = 	13'b0111011101000;
+            newBitShitter = 	13'b1111111111111;
+        end
+        else if(Letter == 3'b111) begin
+            letterHolder = 	13'b0101010100000;
+            newBitShitter = 	13'b1111111111111;
+        end
     end
     
-    RateDivider newBitSpitter(ClockIn, Reset, 2'b10, NewBitPeriodic); 
-    //idk if reset supposed to work in same way as cockSpliter
-    //output pulses every 0.25s
-
+    
 
     assign DotDashOut = letterReader[12];
+    assign NewBitOut = (smthStore[12] != 0)?halfClock: 1'b0; 
 
 endmodule
                  
@@ -52,10 +75,10 @@ module shiftReg(Pword, halfSecClock, reset_n, Q, shift);
     input [12:0] Pword;
     input halfSecClock, reset_n, shift;
     output reg [12:0] Q;
-    always @(posedge halfSecClock) begin
+    always @(posedge halfSecClock, posedge reset_n, posedge shift) begin
             if(reset_n)
                 Q <= 0;
-            else if(shift)
+            else if(shift & (Q!=Pword)) //when start is pressed for 1st halfclock tick
                 Q <= Pword;
             else begin
                 Q[0] <= 1'b0;
@@ -93,9 +116,9 @@ always @(*) begin //unused
 	if (Speed == 2'b11) c <= 4;
 end
 wire [$clog2(MAXN):0] cnew;
-assign cnew = (speed == 2b'01)?CLOCK_FREQUENCY/2-1 : CLOCK_FREQUENCY/4;
-//if speed == 01, tick every 0.5s
-//if speed != 01, tick every 0.25s
+assign cnew = (Speed == 2'b01)?(CLOCK_FREQUENCY/2-1) : CLOCK_FREQUENCY/4;
+//if Speed == 01, tick every 0.5s
+//if Speed != 01, tick every 0.25s
 
 
 
@@ -114,6 +137,6 @@ always @(posedge ClockIn) begin
             counter <= counter - 1;
 
 end
-    assign Enable = (counter != 0)?0:1;  
+    assign Enable = (counter == 0)?1:0;  
 endmodule
                 
