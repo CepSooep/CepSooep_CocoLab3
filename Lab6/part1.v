@@ -1,3 +1,17 @@
+module part1board(KEY, SW, LEDR, HEX0);
+    input [0:0]KEY;
+    input [1:0] SW;
+    output [9:0]LEDR;
+    output [6:0] HEX0;
+
+    part1 HEHE(.Clock(KEY[0]), .Reset(~KEY[0]), .w[SW[1]), .z(LEDR[9]), .CurState(LEDR[3:0]));
+    hex H0(LEDR[3:0], HEX0);
+    // to reset: press
+
+
+
+
+
 module part1 (
 input Clock ,
 input Reset ,
