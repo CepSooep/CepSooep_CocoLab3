@@ -5,12 +5,6 @@
 
 //LEDR displays result
 //HEX0 & HEX1 also displays result
-module part2board(input SW,KEY; output LEDR,HEX0,HEX1);
-    part2 MAIN(.Clock(CLOCK_50), .Reset(KEY[0]), .Go(KEY[1]), .DataResult(LEDR[7:0]), .ResultValid(LEDR[8]));
-    hex H0(LEDR[3:0], HEX0[6:0]);
-    hex H1(LEDR[7:4], HEX1[6:0]);
-endmodule
-
 
 module part2(Clock, Reset, Go, DataIn, DataResult, ResultValid);
     input Clock;
@@ -25,10 +19,12 @@ module part2(Clock, Reset, Go, DataIn, DataResult, ResultValid);
     wire ld_alu_out;
     wire [1:0]  alu_select_1, alu_select_2;
     wire alu_op;
+    wire resultValidStore;
+    wire dataOutStore;
 
     control C0(
         .clk(Clock),
-        .resetn(Reset),
+        .resetn(~Reset),
 
         .go(Go),
 
@@ -47,7 +43,7 @@ module part2(Clock, Reset, Go, DataIn, DataResult, ResultValid);
 
     datapath D0(
         .clk(Clock),
-        .resetn(Reset),
+        .resetn(~Reset),
 
         .ld_alu_out(ld_alu_out),
         .ld_x(ld_x),
@@ -63,6 +59,8 @@ module part2(Clock, Reset, Go, DataIn, DataResult, ResultValid);
         .data_in(DataIn),
         .data_result(DataResult)
     );
+
+    
 
  endmodule
 
@@ -115,7 +113,7 @@ module control(
                 step4: next_state = step5;
                 step5: next_state = step6;
                 step6: next_state = step7;
-                step7: next_state = S_LOAD_A;
+                step7: next_state = go ? S_LOAD_A:step7;
             default:     next_state = S_LOAD_A;
         endcase
     end // state_table
@@ -201,11 +199,11 @@ module control(
             end
             step7: begin
                 ld_a = 1'b0;
-                ld_r = 1'b1;
+                ld_r = 1'b0;
                 alu_select_1 = 2'b00;
                 alu_select_2 = 2'b00;
                 alu_op       = 1'b0;
-                ld_alu_out   = 1'b1;
+                ld_alu_out   = 1'b0;
                 result_valid = 1'b1;
             end
 
@@ -320,33 +318,4 @@ module datapath(
 
 endmodule
 
-module hex_decoder(c, display);
-	input [3:0] c;
-	output [6:0] display;
-	
-	wire c0, c1, c2, c3; //for the ease of typing (they are not wires)
-	assign c0 = c[0];
-	assign c1 = c[1];
-	assign c2 = c[2];
-	assign c3 = c[3];
 
-	wire [6:0] inverted; //I messed up, everything is inverted
-
-	assign inverted[0] = ~c2&~c0 | ~c3&c2&c0 | c2&c1 | c3&~c2&~c1 | c3&~c0 | ~c3&c1;
-	assign inverted[1] = ~c3&~c1&~c0 | ~c2&~c1 | ~c2&~c0 | ~c3&c1&c0 | c3&~c1&c0;
-	assign inverted[2] = ~c2&~c1 | ~c2&c0 | ~c1&c0 | ~c3&c2 | c3&~c2;
-	assign inverted[3] = ~c3&~c2&~c0 | ~c2&c1&c0 | c2&~c1&c0 | c2&c1&~c0 | c3&~c1;
-	assign inverted[4] = ~c2&~c0 | c1&~c0 | c3&c1 |c3&c2;
-	assign inverted[5] = ~c1&~c0 | ~c3&c2&~c1 | c2&~c0 | c3&~c2 | c3&c1;
-	assign inverted[6] = ~c2&c1 | c1&~c0 | ~c3&c2&~c1 | c3&~c2 | c3&c0;
-	
-	assign display = ~inverted;
-
-endmodule
-
-//*********for testing*************************************
-module hex(SW, HEX);
-	input [3:0] SW;
-	output [6:0] HEX;
-	hex_decoder H1(SW, HEX);	
-endmodule
