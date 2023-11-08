@@ -2,12 +2,14 @@ module part2(iResetn,iPlotBox,iBlack,iColour,iLoadX,iXY_Coord,iClock,oX,oY,oColo
    parameter X_SCREEN_PIXELS = 8'd160;
    parameter Y_SCREEN_PIXELS = 7'd120;
 
+
    input wire iResetn, iPlotBox, iBlack, iLoadX;
    input wire [2:0] iColour;
    input wire [6:0] iXY_Coord;
    input wire      iClock;
    output wire [7:0] oX;         // VGA pixel coordinates
    output wire [6:0] oY;
+
 
    output wire [2:0] oColour;     // VGA pixel colour (0-7)
    //RGB
@@ -17,6 +19,7 @@ module part2(iResetn,iPlotBox,iBlack,iColour,iLoadX,iXY_Coord,iClock,oX,oY,oColo
    wire ld_x, ld_y, ld_color, count_en, clearcount_en;
    wire [3:0] counter;
    wire [14:0] counter15;
+
 
    control ControlPath(
     .clk(iClock),
@@ -32,6 +35,7 @@ module part2(iResetn,iPlotBox,iBlack,iColour,iLoadX,iXY_Coord,iClock,oX,oY,oColo
     .clearcount_en(clearcount_en),
     .oDone(oDone),
     .clear(iBlack));
+
 
    wire [6:0] oX_7;
    datapath DataFlow(
@@ -52,11 +56,14 @@ module part2(iResetn,iPlotBox,iBlack,iColour,iLoadX,iXY_Coord,iClock,oX,oY,oColo
     .col_out(oColour),
     .oPlot(oPlot));
 
+
   assign oX = {1'b0, oX_7};
+
 
   bit4Counter C1(iClock, iResetn, count_en, counter);
   bit15Counter C2(iClock, iResetn, clearcount_en, counter15);
 endmodule // part2
+
 
 module control(
     input clk,
@@ -70,6 +77,7 @@ module control(
     output reg  count_en, clearcount_en
     );
 
+
     reg [3:0] current_state, next_state;
    
     localparam  
@@ -82,6 +90,7 @@ module control(
      stateC1 = 4'b0110,  
      stateC2 = 4'b0111,
      stateC3 = 4'b1000;      
+
 
     // Next state logic aka our state table
     always@(*)
@@ -100,6 +109,7 @@ module control(
         endcase
     end // state_table
 
+
     // Output logic aka all of our datapath control signals
     reg firstloop;
     always @(*)
@@ -112,20 +122,21 @@ module control(
         clearcount_en = 1'b0;
         oDone = firstloop;
 
+
         if(!resetn)
             firstloop = 1'b0;
-        
+       
         case (current_state)
             state1: begin
                 end
             state2: begin
-                ld_x = 1'b1;
+                ld_x = iloadx ? 1'b1 : 0;
                 end
             state3: begin
                 end
             state4: begin
-                ld_y = 1'b1;
-                ld_color = 1'b1;
+                ld_y = iplotbox ? 1'b1 : 0;
+                ld_color = iplotbox ? 1'b1 : 0;
                 end
             state5: begin
                 count_en = 1'b1;
@@ -147,6 +158,7 @@ module control(
                 end  
         endcase
     end
+
 
     // current_state registers
     always@(posedge clk)
@@ -174,10 +186,12 @@ module datapath(
     output reg oPlot
     );
 
+
     // input registers
     reg [6:0] RX;
     reg [6:0] RY;
     reg [2:0] RC;
+
 
     // Registers RX, RY, RC with respective input logic
     always@(posedge clk) begin
@@ -190,11 +204,12 @@ module datapath(
             if(ld_x)
                 RX <= x_in;
             if(ld_y)
-                RY <= y_in; 
+                RY <= y_in;
             if(ld_color)
                 RC <= col_in;
         end
     end
+
 
     // Output result register
     always@(posedge clk) begin
@@ -203,6 +218,7 @@ module datapath(
             y_out <= 7'b0;
             col_out <= 3'b0;
             oPlot = 1'b0;
+
 
         end
         else begin
@@ -219,15 +235,17 @@ module datapath(
                oPlot = 1'b1;
             end
             else if(!count_en && !clearcount_en)
-               oPlot = 1'b0; 
-            
+               oPlot = 1'b0;
+           
         end
     end
 endmodule
 
+
 module bit4Counter(clk, resetn, count_en, Q);
   input clk, resetn, count_en;
   output reg [3:0] Q;
+
 
   always @(posedge clk) begin
     if(!resetn)
@@ -237,9 +255,11 @@ module bit4Counter(clk, resetn, count_en, Q);
   end
 endmodule
 
+
 module bit15Counter(clk, resetn, count_en, Q);
   input clk, resetn, count_en;
   output reg [14:0] Q;
+
 
   always @(posedge clk) begin
     if(!resetn)
