@@ -32,24 +32,12 @@ module fill
    
     wire resetn;
     assign resetn = KEY[0];
-	wire [2:0] color;
+	wire [2:0] colour;
     wire [7:0] x;
     wire [6:0] y;
-	wire oPlot, oDone;
-    wire writeEn; //iPlot
+	wire oDone;
+    wire writeEn; //oPlot
    
-    part2 MAIN(.iResetn(resetn),
-               .iPlotBox(writeEn),
-               .iBlack(KEY[2]),
-               .iColour(SW[9:7]),
-               .iLoadX(KEY[3]),
-               .iXY_Coord(KEY[1]),
-               .iClock(CLOCK_50),
-               .oX(x),
-               .oY(y),
-               .oColour(color),
-               .oPlot(oPlot),
-               .oDone(oDone));
 
 
     // Create the colour, x, y and writeEn wires that are inputs to the controller.
@@ -60,7 +48,7 @@ module fill
     vga_adapter VGA(
             .resetn(resetn),
             .clock(CLOCK_50),
-            .colour(color),
+            .colour(colour),
             .x(x),
             .y(y),
             .plot(writeEn),
@@ -81,5 +69,17 @@ module fill
     // Put your code here. Your code should produce signals x,y,colour and writeEn
     // for the VGA controller, in addition to any other functionality your design may require.
    
-   
+       part2 MAIN(.iResetn(resetn),
+               .iPlotBox(~KEY[1]),
+               .iBlack(~KEY[2]),
+               .iColour(SW[9:7]),
+               .iLoadX(~KEY[3]),
+               .iXY_Coord(SW[6:0]),
+               .iClock(CLOCK_50),
+               .oX(x),
+               .oY(y),
+               .oColour(colour),
+               .oPlot(writeEn),
+               .oDone(oDone));
+
 endmodule
