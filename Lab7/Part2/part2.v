@@ -103,7 +103,7 @@ module control(
                 state5: next_state = (counter != 4'b1111) ? state5 : state6;
                 state6: next_state = state1;
                 stateC1: next_state = clear ? stateC1 : stateC2;
-                stateC2: next_state = counter15 != {7'b1111111,8'b10100000} ? stateC2 : stateC3;
+                stateC2: next_state = counter15 != {8'b01111111,7'b1111111} ? stateC2 : stateC3;
                 stateC3: next_state = state1;
             default:     next_state = state1;
         endcase
@@ -229,8 +229,8 @@ module datapath(
                oPlot = 1'b1;
             end
             else if(clearcount_en) begin
-               x_out <= counter15[7:0];
-               y_out <= counter15[14:8];
+               x_out <= counter15[14:7];
+               y_out <= counter15[6:0];
                col_out <= 3'b000;
                oPlot = 1'b1;
             end
@@ -262,7 +262,7 @@ module bit15Counter(clk, resetn, count_en, Q);
 
 
   always @(posedge clk) begin
-    if(!resetn | (Q=={7'b1111111,8'b10100000}) )
+    if(!resetn | (Q=={8'b01111111,7'b1111111}) )
       Q <= {15{1'b0}};
     else if (count_en)
       Q <= Q + 1'b1;
