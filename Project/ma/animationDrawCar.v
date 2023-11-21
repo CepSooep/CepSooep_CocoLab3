@@ -1,31 +1,214 @@
-module animationDrawCar(iResetn,iPlotBox,iLoadX,iX,iY,iClock,oX,oY,oColour,oPlot,oDone);
+module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oDone, oPlot);
   parameter X_SCREEN_PIXELS = 8'd160;
   parameter Y_SCREEN_PIXELS = 7'd120;
 
   input wire iResetn;
   //input iPlotBox, iLoadX;
-  input [7:0] iX;
-  input [6:0] iY;
+  input [7:0] iX;//the next location
+  input [6:0] iY;//the next location
   input wire iClock;
   input drawCar;
   input [2:0] dir; //i think 3 bits?????
-  input [1:0] go; //stop = 00 forward = 11 backwards = 10
 
   output wire [7:0] oX;         // VGA pixel coordinates
   output wire [6:0] oY;
   output wire [9:0] oColour;     // VGA pixel colour (0-7), 3 bits per color {R,G,B}
-
-  //output wire         oPlot;       // Pixel draw enable
+  output wire oPlot;        //tells VGA to plot
   output wire  oDone;       // goes high when finished drawing frame
    
-  wire ld_x, ld_y, ld_color, count_en, clearcount_en;
-  //wire [3:0] counter;
-  //wire [14:0] counter15;
+  wire plot_en, counterto112_en, counterto225_en, drawCarDone ,loadxy;
+  wire [6:0] counter112;
+  wire [7:0] counter225;
 
-  reg [9:0] S[111:0];//straigt
+
+
+    control C(
+    .clk(iCLock),
+    .resetn(iResetn),
+    .counter112(counter112),
+    .counter225(counter225),
+ 
+    //input clear,
+    .plot_en(plot_en), //draw on screen
+    .counterto112_en(counterto112_en), 
+    .counterto225_en(counterto225_en), 
+    .drawCarDone(drawCarDone) //when car is done drawing
+    .loadxy(loadxy)//to load RX and RY so that x_in doesnt need to be held
+    .oPlot(oPlot)
+    );
+
+    datapath D(
+    .clk(iCLock),
+    .resetn(iResetn),
+    .counter112(counter112),
+    .counter225(counter225),
+    .plot_en(plot_en),
+    .x_in(iX), //input coord of upper left corner
+    .y_in(iY),
+    .loadxy(loadxy),
+    .dir(dir),
+    .x_out(oX),
+    .y_out(oY),
+    .col_out(oColour),
+    );
+
+  counterTo112 C112(iClock, iResetn, counterto112_en, counter112);
+  counterTo225 C225(iClock, iResetn, counterto225_en, counter225);
+endmodule // part2
+
+
+module control(
+    input clk,
+    input resetn,
+    //input iloadx,
+    //input iplotbox,
+    input [6:0] counter112,
+    input [7:0] counter225,
+ 
+    //input clear,
+    output reg loadxy,
+    output reg plot_en, //draw on screen
+    output reg counterto112_en, 
+    output reg counterto225_en, 
+    output reg drawCarDone //when car is done drawing
+    );
+
+    reg straight;
+    always @ (*){
+        if((dir == 3'd0)|(dir == 3'd2)|(dir == 3'd4)|(dir == 3'd6)) straight = 1;
+        else straight = 0;
+    }
+
+    reg [1:0] current_state, next_state;
+   
+    localparam  
+     state1 = 2'd0,
+     state2A = 2'd1,
+     state2B = 2'd2,
+     state3 = 2'd3,
+    
+    // Next state logic aka state table
+    always@(*)
+    begin: state_table
+            case (current_state)
+                state1: next_state = (drawCar & straight) ? state2A : ((drawCar & ~straight) ? state2B : state1);
+                state2A: next_state = (counter112 == 7'd112) ? state3 : state2A;
+                state2B: next_state = (counter225 == 8'd225) ? state3 : state2B;
+                state3: next_state = state1;
+            default:  next_state = state1;
+        endcase
+    end // state_table
+
+    // Output logic aka all of our datapath control signals
+    reg firstloop;
+    always @(*)
+    begin
+        // By default make all our signals 0
+        plot_en = 1'b0;
+        counterto116_en = 1'b0;
+        counterto225_en = 1'b0;
+        drawCarDone = 1'b0;
+        loadxy = 1'b0;
+        oPlot = 1'b0;
+        case (current_state)
+            state1: begin
+                loadxy = 1'b1;
+                end
+            state2A: begin
+                plot_en = 1'b1;
+                oPlot = 1'b1;
+                end
+            state2B: begin
+                plot_en = 1'b1;
+                oPlot = 1'b1;
+                end
+            state3: begin
+                drawCarDone = 1'b1;
+                end
+        endcase
+    end
+
+    // current_state registers
+    always@(posedge clk)
+    begin
+        if(!resetn)
+            current_state <= state1;
+        else
+            current_state <= next_state;
+    end // state_FFS
+endmodule
+////////////////////////////////////
+module datapath(
+    input clk,
+    input resetn,
+    input plot_en, 
+    input [7:0] x_in, //input coord of upper left corner
+    input [6:0] y_in,
+    input [6:0] counter112,
+    input [7:0] counter225,
+    input [2:0] dir,
+    input loadxy,
+
+    output reg [6:0] x_out,
+    output reg [6:0] y_out,
+    output reg [2:0] col_out,
+
+    );
+
+    //loading registers 
+    reg [7:0] RX;
+    reg [6:0] RY;
+    always @ (*) begin
+        if (!resetn) begin
+            RX = 8'b0;
+            RY = 7'b0;
+        end
+        else if(loadxy) begin
+            RX = x_in;
+            RY = y_in;
+        end
+    end
+
+
+    // Output result register
+    always@(posedge clk) begin Output_result_register
+        if(!resetn) begin
+            x_out <= 7'b0;
+            y_out <= 7'b0;
+            col_out <= 3'b0;
+        end
+
+        else if(plot_en) begin
+            if(((dir == 0)|(dir == 4))*S[counter112[6:0]][9]) begin //horizontal
+                //S[counter112[6:0]][9] tells us to color or leave transparent
+               x_out <= RX + (counter112[6:0] / 14);//will truncate the fractional part
+               y_out <= RY + (counter112[6:0] % 14);
+               col_out <= S[counter112[6:0]][8:0]; //idk if this works
+            end
+            else if(((dir == 2)|(dir == 6))*S[counter112[6:0]][9]) begin //vertical
+               x_out <= RX + (counter112[6:0] % 8);
+               y_out <= RY + (counter112[6:0] / 8);
+               col_out <= S[counter112[6:0]][8:0]; //idk if this works
+            end
+            else if(((dir == 1)|(dir == 5))*S[counter112[6:0]][9]) begin //up+right
+               x_out <= RX + (counter225[6:0] % 15);
+               y_out <= RY + (counter225[6:0] / 15);
+               col_out <= S[counter225[6:0]][8:0]; //idk if this works
+            end
+            else if(((dir == 3)|(dir == 7))*S[counter112[6:0]][9]) begin //down+right
+               x_out <= RX + (counter225[6:0] / 15);
+               y_out <= RY + (counter225[6:0] % 15);
+               col_out <= S[counter225[6:0]][8:0]; //idk if this works
+
+            end 
+        end
+    end //Output_result_register
+
+  reg [9:0] S[111:0];//straigt 
   reg [9:0] D[224:0]; //diagonal
   parameter R = 10'h300, B = 10'h200, W = 10'h3FF, E={10{1'b0}};
-  initial begin
+      //colors for the car
+  initial begin car_colors
     //{draw enable, color}
     S[0]=B; S[1]=B; S[2]=E; S[3]=E; S[4]=E; S[5]=E; S[6]=B; S[7]=B;
     S[8]=B; S[9]=B; S[10]=E; S[11]=E; S[12]=E; S[13]=E; S[14]=B; S[15]=B;
@@ -58,247 +241,29 @@ module animationDrawCar(iResetn,iPlotBox,iLoadX,iX,iY,iClock,oX,oY,oColour,oPlot
     D[180]=E; D[181]=E; D[182]=E; D[183]=E; D[184]=E; D[185]=E; D[186]=E; D[187]=B; D[188]=B; D[189]=E; D[190]=E; D[191]=E; D[192]=E; D[193]=E; D[194]=E;
     D[195]=E; D[196]=E; D[197]=E; D[198]=E; D[199]=E; D[200]=E; D[201]=E; D[202]=B; D[203]=B; D[204]=B; D[205]=E; D[206]=E; D[207]=E; D[208]=E; D[209]=E;
     D[210]=E; D[211]=E; D[212]=E; D[213]=E; D[214]=E; D[215]=E; D[216]=E; D[217]=E; D[218]=B; D[219]=B; D[220]=E; D[221]=E; D[222]=E; D[223]=E; D[224]=E;
-   control ControlPath(
-    .clk(iClock),
-    .resetn(iResetn),
-    .iloadx(iLoadX),
-    .iplotbox(iPlotBox),
-    .counter(counter),
-    .counter15(counter15),
-    .ld_x(ld_x),
-    .ld_y(ld_y),
-    .ld_color(ld_color),
-    .count_en(count_en),
-    .clearcount_en(clearcount_en),
-    .oDone(oDone),
-    .clear(iBlack));
+  end //car_colors
 
-
-   wire [6:0] oX_7;
-   datapath DataFlow(
-    .clk(iClock),
-    .resetn(iResetn),
-    .ld_x(ld_x),
-    .ld_y(ld_y),
-    .ld_color(ld_color),
-    .count_en(count_en),
-    .clearcount_en(clearcount_en),
-    .counter(counter),
-    .counter15(counter15),
-    .x_in(iXY_Coord),
-    .y_in(iXY_Coord),
-    .col_in(iColour),
-    .x_out(oX_7),
-    .y_out(oY),
-    .col_out(oColour),
-    .oPlot(oPlot));
-
-
-  assign oX = {1'b0, oX_7};
-
-
-  bit4Counter C1(iClock, iResetn, count_en, counter);
-  bit15Counter C2(iClock, iResetn, clearcount_en, counter15);
-endmodule // part2
-
-
-module control(
-    input clk,
-    input resetn,
-    //input iloadx,
-    //input iplotbox,
-    input [3:0] counter,
-    input [14:0] counter15,
-    //input clear,
-    output reg  ld_x, ld_y, ld_color, oDone,
-    output reg  count_en, clearcount_en
-    );
-
-
-    reg [3:0] current_state, next_state;
-   
-    localparam  
-     state1 = 4'b0000,
-     state2 = 4'b0001,
-     state3 = 4'b0010,
-     state4 = 4'b0011,
-     state5 = 4'b0100,
-     state6 = 4'b0101,
-     stateC1 = 4'b0110,  
-     stateC2 = 4'b0111,
-     stateC3 = 4'b1000;      
-
-
-    // Next state logic aka our state table
-    always@(*)
-    begin: state_table
-            case (current_state)
-                state1: next_state = clear ? stateC1 : (iloadx ? state2 : state1);
-                state2: next_state = clear ? stateC1 : (iloadx ? state2 : state3);
-                state3: next_state = clear ? stateC1 : (iplotbox ? state4 : state3);
-                state4: next_state = clear ? stateC1 : (iplotbox ? state4 : state5);
-                state5: next_state = (counter != 4'b1111) ? state5 : state6;
-                state6: next_state = state1;
-                stateC1: next_state = clear ? stateC1 : stateC2;
-                stateC2: next_state = counter15 != {8'b01111111,7'b1111111} ? stateC2 : stateC3;
-                stateC3: next_state = state1;
-            default:     next_state = state1;
-        endcase
-    end // state_table
-
-
-    // Output logic aka all of our datapath control signals
-    reg firstloop;
-    always @(*)
-    begin
-        // By default make all our signals 0
-        ld_x = 1'b0;
-        ld_y = 1'b0;
-        ld_color = 1'b0;
-        count_en = 1'b0;
-        clearcount_en = 1'b0;
-        oDone = firstloop;
-
-
-        if(!resetn)
-            firstloop = 1'b0;
-       
-        case (current_state)
-            state1: begin
-                end
-            state2: begin
-                ld_x = iloadx ? 1'b1 : 0;
-                end
-            state3: begin
-                end
-            state4: begin
-                ld_y = iplotbox ? 1'b1 : 0;
-                ld_color = iplotbox ? 1'b1 : 0;
-                end
-            state5: begin
-                count_en = 1'b1;
-                oDone = 1'b0;
-                end
-            state6: begin
-                firstloop = 1'b1;
-                oDone = 1'b0;
-                end
-            stateC1: begin
-                end
-            stateC2: begin
-                clearcount_en = 1'b1;
-                oDone = 1'b0;
-                end
-            stateC3: begin
-                oDone = 1'b0;
-                firstloop = 1'b1;
-                end  
-        endcase
-    end
-
-
-    // current_state registers
-    always@(posedge clk)
-    begin
-        if(!resetn)
-            current_state <= state1;
-        else
-            current_state <= next_state;
-    end // state_FFS
-endmodule
-////////////////////////////////////
-module datapath(
-    input clk,
-    input resetn,
-    input ld_x, ld_y, ld_color,
-    input count_en, clearcount_en,
-    input [3:0] counter,
-    input [14:0] counter15,
-    input [6:0] x_in,
-    input [6:0] y_in,
-    input [2:0] col_in,
-    output reg [6:0] x_out,
-    output reg [6:0] y_out,
-    output reg [2:0] col_out,
-    output reg oPlot
-    );
-
-
-    // input registers
-    reg [6:0] RX;
-    reg [6:0] RY;
-    reg [2:0] RC;
-
-
-    // Registers RX, RY, RC with respective input logic
-    always@(posedge clk) begin
-        if(!resetn) begin
-            RX <= 7'b0;
-            RY <= 7'b0;
-            RC <= 3'b0;
-        end
-        else begin
-                RX <= iX;
-                RY <= iY;
-                RC <= iColour;
-        end
-    end
-
-
-    // Output result register
-    always@(posedge clk) begin
-        if(!resetn) begin
-            x_out <= 7'b0;
-            y_out <= 7'b0;
-            col_out <= 3'b0;
-            oPlot = 1'b0;
-
-
-        end
-        else begin
-            if(count_en) begin
-               x_out <= RX + counter[1:0];
-               y_out <= RY + counter[3:2];
-               col_out <= RC;
-               oPlot = 1'b1;
-            end
-            else if(clearcount_en) begin
-               x_out <= counter15[14:7];
-               y_out <= counter15[6:0];
-               col_out <= 3'b000;
-               oPlot = 1'b1;
-            end
-            else if(!count_en && !clearcount_en)
-               oPlot = 1'b0;
-           
-        end
-    end
 endmodule
 
 
-module bit4Counter(clk, resetn, count_en, Q);
+module counterTo225(clk, resetn, count_en, Q);
   input clk, resetn, count_en;
-  output reg [3:0] Q;
-
-
+  output reg [7:0] Q;
   always @(posedge clk) begin
-    if(!resetn)
-      Q <= 4'b0000;
+    if(!resetn | (Q==8'd225))
+      Q <= 8'd0;
     else if (count_en)
-      Q <= Q + 1'b1;
+      Q <= Q + 1'd1;
   end
 endmodule
 
-
-module bit15Counter(clk, resetn, count_en, Q);
+module counterTo112(clk, resetn, count_en, Q);
   input clk, resetn, count_en;
-  output reg [14:0] Q;
-
-
+  output reg [6:0] Q;
   always @(posedge clk) begin
-    if(!resetn | (Q=={8'b01111111,7'b1111111}) )
-      Q <= {15{1'b0}};
+    if(!resetn | (Q==7'd112) )
+      Q <= 7'd0;
     else if (count_en)
       Q <= Q + 1'b1;
   end
-endmodule
+endmodule 
