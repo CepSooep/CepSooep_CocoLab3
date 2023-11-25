@@ -1,4 +1,4 @@
-module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oDone, oPlot);
+module drawCar(iResetn,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oDone, oPlot);
   parameter X_SCREEN_PIXELS = 8'd160;
   parameter Y_SCREEN_PIXELS = 7'd120;
 
@@ -12,7 +12,7 @@ module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oD
 
   output wire [7:0] oX;         // VGA pixel coordinates
   output wire [6:0] oY;
-  output wire [9:0] oColour;     // VGA pixel colour (0-7), 3 bits per color {R,G,B}
+  output wire [8:0] oColour;     // VGA pixel colour (0-7), 3 bits per color {R,G,B}
   output wire oPlot;        //tells VGA to plot
   output wire  oDone;       // goes high when finished drawing frame
    
@@ -22,22 +22,23 @@ module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oD
 
 
 
-    control C(
+    DrawCarcontrol C(
     .clk(iCLock),
     .resetn(iResetn),
     .counter112(counter112),
     .counter225(counter225),
- 
+    .dir(dir),
+    .drawCar(drawCar),
     //input clear,
     .plot_en(plot_en), //draw on screen
     .counterto112_en(counterto112_en), 
     .counterto225_en(counterto225_en), 
-    .drawCarDone(drawCarDone) //when car is done drawing
-    .loadxy(loadxy)//to load RX and RY so that x_in doesnt need to be held
+    .drawCarDone(drawCarDone), //when car is done drawing
+    .loadxy(loadxy),//to load RX and RY so that x_in doesnt need to be held
     .oPlot(oPlot)
     );
 
-    datapath D(
+    DrawCardatapath D(
     .clk(iCLock),
     .resetn(iResetn),
     .counter112(counter112),
@@ -49,7 +50,7 @@ module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oD
     .dir(dir),
     .x_out(oX),
     .y_out(oY),
-    .col_out(oColour),
+    .col_out(oColour)
     );
 
   counterTo112 C112(iClock, iResetn, counterto112_en, counter112);
@@ -57,10 +58,11 @@ module animationDrawCar(iResetn,iLoadX,iX,iY,drawCar,dir,iClock,oX,oY,oColour,oD
 endmodule // part2
 
 
-module control(
+module DrawCarcontrol(
     input clk,
     input resetn,
-    //input iloadx,
+    input dir,
+    input drawCar,
     //input iplotbox,
     input [6:0] counter112,
     input [7:0] counter225,
@@ -70,14 +72,16 @@ module control(
     output reg plot_en, //draw on screen
     output reg counterto112_en, 
     output reg counterto225_en, 
-    output reg drawCarDone //when car is done drawing
+    output reg drawCarDone, //when car is done drawing
+    output reg oPlot
     );
 
+
     reg straight;
-    always @ (*){
+    always @ (*) begin
         if((dir == 3'd0)|(dir == 3'd2)|(dir == 3'd4)|(dir == 3'd6)) straight = 1;
         else straight = 0;
-    }
+    end
 
     reg [1:0] current_state, next_state;
    
@@ -85,7 +89,7 @@ module control(
      state1 = 2'd0,
      state2A = 2'd1,
      state2B = 2'd2,
-     state3 = 2'd3,
+     state3 = 2'd3;
     
     // Next state logic aka state table
     always@(*)
@@ -105,7 +109,7 @@ module control(
     begin
         // By default make all our signals 0
         plot_en = 1'b0;
-        counterto116_en = 1'b0;
+        counterto112_en = 1'b0;
         counterto225_en = 1'b0;
         drawCarDone = 1'b0;
         loadxy = 1'b0;
@@ -138,7 +142,7 @@ module control(
     end // state_FFS
 endmodule
 ////////////////////////////////////
-module datapath(
+module DrawCardatapath(
     input clk,
     input resetn,
     input plot_en, 
@@ -151,64 +155,15 @@ module datapath(
 
     output reg [6:0] x_out,
     output reg [6:0] y_out,
-    output reg [2:0] col_out,
+    output reg [2:0] col_out
 
     );
-
-    //loading registers 
-    reg [7:0] RX;
-    reg [6:0] RY;
-    always @ (*) begin
-        if (!resetn) begin
-            RX = 8'b0;
-            RY = 7'b0;
-        end
-        else if(loadxy) begin
-            RX = x_in;
-            RY = y_in;
-        end
-    end
-
-
-    // Output result register
-    always@(posedge clk) begin Output_result_register
-        if(!resetn) begin
-            x_out <= 7'b0;
-            y_out <= 7'b0;
-            col_out <= 3'b0;
-        end
-
-        else if(plot_en) begin
-            if(((dir == 0)|(dir == 4))*S[counter112[6:0]][9]) begin //horizontal
-                //S[counter112[6:0]][9] tells us to color or leave transparent
-               x_out <= RX + (counter112[6:0] / 14);//will truncate the fractional part
-               y_out <= RY + (counter112[6:0] % 14);
-               col_out <= S[counter112[6:0]][8:0]; //idk if this works
-            end
-            else if(((dir == 2)|(dir == 6))*S[counter112[6:0]][9]) begin //vertical
-               x_out <= RX + (counter112[6:0] % 8);
-               y_out <= RY + (counter112[6:0] / 8);
-               col_out <= S[counter112[6:0]][8:0]; //idk if this works
-            end
-            else if(((dir == 1)|(dir == 5))*S[counter112[6:0]][9]) begin //up+right
-               x_out <= RX + (counter225[6:0] % 15);
-               y_out <= RY + (counter225[6:0] / 15);
-               col_out <= S[counter225[6:0]][8:0]; //idk if this works
-            end
-            else if(((dir == 3)|(dir == 7))*S[counter112[6:0]][9]) begin //down+right
-               x_out <= RX + (counter225[6:0] / 15);
-               y_out <= RY + (counter225[6:0] % 15);
-               col_out <= S[counter225[6:0]][8:0]; //idk if this works
-
-            end 
-        end
-    end //Output_result_register
 
   reg [9:0] S[111:0];//straigt 
   reg [9:0] D[224:0]; //diagonal
   parameter R = 10'h300, B = 10'h200, W = 10'h3FF, E={10{1'b0}};
       //colors for the car
-  initial begin car_colors
+  initial begin: car_colors
     //{draw enable, color}
     S[0]=B; S[1]=B; S[2]=E; S[3]=E; S[4]=E; S[5]=E; S[6]=B; S[7]=B;
     S[8]=B; S[9]=B; S[10]=E; S[11]=E; S[12]=E; S[13]=E; S[14]=B; S[15]=B;
@@ -242,6 +197,56 @@ module datapath(
     D[195]=E; D[196]=E; D[197]=E; D[198]=E; D[199]=E; D[200]=E; D[201]=E; D[202]=B; D[203]=B; D[204]=B; D[205]=E; D[206]=E; D[207]=E; D[208]=E; D[209]=E;
     D[210]=E; D[211]=E; D[212]=E; D[213]=E; D[214]=E; D[215]=E; D[216]=E; D[217]=E; D[218]=B; D[219]=B; D[220]=E; D[221]=E; D[222]=E; D[223]=E; D[224]=E;
   end //car_colors
+    //loading registers 
+    reg [7:0] RX;
+    reg [6:0] RY;
+    always @ (*) begin
+        if (!resetn) begin
+            RX = 8'b0;
+            RY = 7'b0;
+        end
+        else if(loadxy) begin
+            RX = x_in;
+            RY = y_in;
+        end
+    end
+
+
+    // Output result register
+    always@(posedge clk) begin: Output_result_register
+        if(!resetn) begin
+            x_out <= 7'b0;
+            y_out <= 7'b0;
+            col_out <= 3'b0;
+        end
+
+        else if(plot_en) begin
+            if(((dir == 0)|(dir == 4))) begin //horizontal
+                //S[counter112[6:0]][9] tells us to color or leave transparent
+               x_out <= RX + (counter112[6:0] / 14);//will truncate the fractional part
+               y_out <= RY + (counter112[6:0] % 14);
+               col_out <= S[counter112[6:0]][8:0]; 
+            end
+            else if(((dir == 2)|(dir == 6))) begin //vertical
+               x_out <= RX + (counter112[6:0] % 8);
+               y_out <= RY + (counter112[6:0] / 8);
+               col_out <= S[counter112[6:0]][8:0];
+            end
+            else if(((dir == 1)|(dir == 5)))begin //up+right
+               x_out <= RX + (counter225[6:0] % 15);
+               y_out <= RY + (counter225[6:0] / 15);
+               col_out <= D[counter225[6:0]][8:0]; 
+            end
+            else if(((dir == 3)|(dir == 7))) begin //down+right
+               x_out <= RX + (counter225[6:0] / 15);
+               y_out <= RY + (counter225[6:0] % 15);
+               col_out <= D[counter225[6:0]][8:0]; 
+
+            end 
+        end
+    end //Output_result_register
+
+  
 
 endmodule
 
