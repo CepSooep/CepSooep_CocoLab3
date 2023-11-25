@@ -1,4 +1,44 @@
 
+module TopLevel(
+    input CLOCK_50;
+    input SW[1],
+    input SW[0],
+
+    inout PS2_CLK,
+	inout PS2_DAT,
+
+    output [6:0] HEX7
+);
+wire validKey;
+wire [1:0] dir;
+assign wire [3:0] hexData {2'b00, dir};
+
+
+KeyCompiler smth(
+    .CLOCK_50(CLOCK_50),
+    .KEY(SW[1]),
+    .EN(SW[0]),
+    .PS2_CLK(PS2_CLK),
+    .PS2_DAT(PS2_DAT),
+    .validKey(validKey),
+    .direction(dir)
+);
+
+
+Hexadecimal_To_Seven_Segment Segment0 #(
+	// Inputs
+	.hex_number			(hexData[3:0]),
+
+	// Bidirectional
+
+	// Outputs
+	.seven_seg_display	(HEX0)
+);
+
+endmodule
+
+
+
 module KeyCompiler(
     input CLOCK_50;
     input KEY,
@@ -27,7 +67,7 @@ PS2_outputget(
 
     .last_data_received(last_data_received),
     .ps2_key_pressed(ps2_key_pressed)
-)
+);
 
 localparam DISABLE      = 3'b000;
 localparam IDLE         = 3'b001;
