@@ -4,8 +4,11 @@ module pointCounter(
   input nextx,
   input nexty,
   output erasecoinEn,
-  output memQout,
+  output [15:0] memQout,
   output points);
+    
+    wire [3:0]counterTo10;
+  
 
 endmodule
 
