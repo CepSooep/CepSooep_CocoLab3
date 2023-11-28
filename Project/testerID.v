@@ -1,34 +1,34 @@
 
 module tester
 (
-    input SW[1],
-    input SW[0],
-    input GPIO_0[24],
-    output GPIO_0[22],
-    output GPIO_0[20],
-    output GPIO_0[18],
-    input CLOCK_50,
-    output [6:0] HEX0;
+	SW,
+    	GPIO_0,
+	CLOCK_50,
+	HEX0;
 // put the pins you need for the DE1 Soc
     
 )
-wire outByte;
-assign
-getDeviceID #
+	input [1:0]SW;
+	input [24:24]GPIO_0;
+	input CLOCK_50;
+	output [22:18]GPIO_0;
+	output [6:0]HEX0;
+	
+	wire outByte;
+
+getDeviceID smth
 (
-.switch(SW[1]),
-.clk(CLOCK_50),
-.reset(SW[0]),
-.SPI_mosi(GPIO_0[22]),
-.SPI_miso(GPIO_0[24]),
-.SPI_clk(GPIO_0[20]),
-.SPI_clk(GPIO_0[18]),
-.outByte(outByte)
+	.switch(SW[0]),
+	.clk(CLOCK_50),
+	.reset(SW[1]),
+	.SPI_miso(GPIO_0[24]),
+	.SPI_mosi(GPIO_0[22]),
+	.outByte(outByte),
+	.SPI_clk(GPIO_0[20]),
+	.CS_n(GPIO_0[18]),
 )
 
-hex_decoder(.c(outByte), .display(HEX0))
-
-
+hex_decoder smththre(.c(outByte), .display(HEX0));
 endmodule
 
 module hex_decoder(c, display);
@@ -59,13 +59,12 @@ module getDeviceID
     output              SPI_mosi,
     output reg [7:0]    outByte
     output              SPI_clk,
-    output              CS);
+    output              CS_n);
 
     wire num_byte_read;
     wire byte_to_read_rdy;
     wire byte_to_read;
-    wire SPI_clk;
-    wire CS_n;
+   
 
     assign wire readCmd     = 8'b00001011;
     assign wire DEVID_AD    = 8'b00000000;
@@ -116,7 +115,6 @@ module getDeviceID
     always @(posedge clk or negedge reset)
     begin
         if (~reset) begin
-        currentState <= IDLE;
         nextState <= IDLE;
         end
         else begin
