@@ -87,15 +87,4 @@ PS2_Controller PS2 (
 	.received_data_en	(ps2_key_pressed)
 );
 
-Hexadecimal_To_Seven_Segment Segment0 (
-	// Inputs
-	.hex_number			(outDir),
-
-	// Bidirectional
-
-	// Outputs
-	.seven_seg_display	(HEX0)
-);
-
-
 endmodule
