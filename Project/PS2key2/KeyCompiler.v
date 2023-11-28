@@ -1,21 +1,12 @@
 module TopLevel (
 	// Inputs
 	CLOCK_50,
-	KEY,
+	reset,
 
 	// Bidirectionals
 	PS2_CLK,
 	PS2_DAT,
-	
-	// Outputs
-	HEX0,
-	HEX1,
-	HEX2,
-	HEX3,
-	HEX4,
-	HEX5,
-	HEX6,
-	HEX7
+	outDir
 );
 
 /***************************
@@ -29,21 +20,13 @@ module TopLevel (
 
 // Inputs
 input				CLOCK_50;
-input		[3:0]	KEY;
+input				reset;
 
 // Bidirectionals
 inout				PS2_CLK;
 inout				PS2_DAT;
+output 			[3:0] 	outDir;
 
-// Outputs
-output		[6:0]	HEX0;
-output		[6:0]	HEX1;
-output		[6:0]	HEX2;
-output		[6:0]	HEX3;
-output		[6:0]	HEX4;
-output		[6:0]	HEX5;
-output		[6:0]	HEX6;
-output		[6:0]	HEX7;
 
 /***************************
  *                 Internal Wires and Registers Declarations                 *
@@ -51,8 +34,8 @@ output		[6:0]	HEX7;
 
 // Internal Wires
 wire		[7:0]	ps2_key_data;
-wire				ps2_key_pressed;
-wire		[3:0] outDir;
+wire			ps2_key_pressed;
+
 
 // Internal Registers
 reg			[7:0]	last_data_received;
@@ -75,7 +58,7 @@ assign outDir = (last_data_received == UPVAL) ? 3'b001 : (last_data_received == 
 
 always @(posedge CLOCK_50)
 begin
-	if (KEY[0] == 1'b0)
+	if (reset == 1'b0)
 		last_data_received <= 8'h00;
 	else if (ps2_key_pressed == 1'b1)
 		last_data_received <= ps2_key_data;
@@ -84,13 +67,7 @@ end
 /***************************
  *                            Combinational Logic                            *
  ***************************/
-assign HEX1 = 7'h7F;
-assign HEX2 = 7'h7F;
-assign HEX3 = 7'h7F;
-assign HEX4 = 7'h7F;
-assign HEX5 = 7'h7F;
-assign HEX6 = 7'h7F;
-assign HEX7 = 7'h7F;
+
 
 /***************************
  *                              Internal Modules                             *
@@ -99,7 +76,7 @@ assign HEX7 = 7'h7F;
 PS2_Controller PS2 (
 	// Inputs
 	.CLOCK_50				(CLOCK_50),
-	.reset				(~KEY[0]),
+	.reset				(~reset),
 
 	// Bidirectionals
 	.PS2_CLK			(PS2_CLK),
