@@ -4,10 +4,11 @@ module tester
 	SW,
     	GPIO_0,
 	CLOCK_50,
-	HEX0;
+	HEX0,
+	HEX1
 // put the pins you need for the DE1 Soc
     
-)
+);
 	input [1:0]SW;
 	input [24:24]GPIO_0;
 	input CLOCK_50;
@@ -28,27 +29,91 @@ getDeviceID smth
 	.CS_n(GPIO_0[18]),
 )
 
-hex_decoder smththre(.c(outByte), .display(HEX0));
+	Hexadecimal_To_Seven_Segment smththre(.hex_number(outByte[3:0]), .seven_seg_display(HEX0);
+	Hexadecimal_To_Seven_Segment smth(.hex_number(outByte[7:4]), .seven_seg_display(HEX1);
 endmodule
 
-module hex_decoder(c, display);
-	input [7:0] c;
-	output [6:0] display;
+/******************************************************************************
+ *                                                                            *
+ * Module:       Hexadecimal_To_Seven_Segment                                 *
+ * Description:                                                               *
+ *      This module converts hexadecimal numbers for seven segment displays.  *
+ *                                                                            *
+ ******************************************************************************/
 
-	wire [6:0] inverted; //I messed up, everything is inverted
+module Hexadecimal_To_Seven_Segment (
+	// Inputs
+	hex_number,
 
-	assign inverted[0] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[1] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[2] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[3] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[4] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[5] = (c == 8'b10101101) ? 1'b0 : 1'b1;
-	assign inverted[6] = 1'b1;
-	
-	assign display = inverted;
+	// Bidirectional
+
+	// Outputs
+	seven_seg_display
+);
+
+/*****************************************************************************
+ *                           Parameter Declarations                          *
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ *                             Port Declarations                             *
+ *****************************************************************************/
+// Inputs
+input		[3:0]	hex_number;
+
+// Bidirectional
+
+// Outputs
+output		[6:0]	seven_seg_display;
+
+/*****************************************************************************
+ *                 Internal Wires and Registers Declarations                 *
+ *****************************************************************************/
+// Internal Wires
+
+// Internal Registers
+
+// State Machine Registers
+
+/*****************************************************************************
+ *                         Finite State Machine(s)                           *
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ *                             Sequential Logic                              *
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ *                            Combinational Logic                            *
+ *****************************************************************************/
+
+assign seven_seg_display =
+		({7{(hex_number == 4'h0)}} & 7'b1000000) |
+		({7{(hex_number == 4'h1)}} & 7'b1111001) |
+		({7{(hex_number == 4'h2)}} & 7'b0100100) |
+		({7{(hex_number == 4'h3)}} & 7'b0110000) |
+		({7{(hex_number == 4'h4)}} & 7'b0011001) |
+		({7{(hex_number == 4'h5)}} & 7'b0010010) |
+		({7{(hex_number == 4'h6)}} & 7'b0000010) |
+		({7{(hex_number == 4'h7)}} & 7'b1111000) |
+		({7{(hex_number == 4'h8)}} & 7'b0000000) |
+		({7{(hex_number == 4'h9)}} & 7'b0010000) |
+		({7{(hex_number == 4'hA)}} & 7'b0001000) |
+		({7{(hex_number == 4'hB)}} & 7'b0000011) |
+		({7{(hex_number == 4'hC)}} & 7'b1000110) |
+		({7{(hex_number == 4'hD)}} & 7'b0100001) |
+		({7{(hex_number == 4'hE)}} & 7'b0000110) |
+		({7{(hex_number == 4'hF)}} & 7'b0001110); 
+
+/*****************************************************************************
+ *                              Internal Modules                             *
+ *****************************************************************************/
+
 
 endmodule
-
 
 module getDeviceID
 (
