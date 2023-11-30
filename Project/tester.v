@@ -130,13 +130,14 @@ module getDeviceID
 
     reg [1:0] num_byte_read;
     wire byte_to_read_rdy;
-    wire byte_to_read;
+    wire [7:0] byte_to_read;
+    wire [1:0]number_bytes_read;
    
 
     wire [7:0] readCmd;
-	 assign readCmd = 8'b00001011;
+	  assign readCmd = 8'b00001011;
     wire [7:0] DEVID_AD;
-	 assign DEVID_AD = 8'b00000000;
+	  assign DEVID_AD = 8'b00000000;
 
 
     reg [7:0] byte_to_send;
@@ -149,19 +150,20 @@ module getDeviceID
     SPI_Master_With_Single_CS 
         #(.SPI_MODE(0),
         .CLKS_PER_HALF_BIT(2),
-        .MAX_BYTES_PER_CS(5),
+        .MAX_BYTES_PER_CS(3),
         .CS_INACTIVE_CLKS(2))
         // set parameters based on experimentation.
 
-        SPIBUS(.i_Rst_L(reset),
+        SPIBUS(
+        .i_Rst_L(reset),
         .i_Clk(clk),
 
-        
+        .i_TX_Count(num_byte_read),
         .i_TX_Byte(byte_to_send),
         .i_TX_DV(byte_to_send_rdy),
         .o_TX_Ready(ready_for_next),
 
-        .i_TX_Count(num_byte_read),
+        .o_RX_Count(number_bytes_read),
         .o_RX_DV(byte_to_read_rdy),
         .o_RX_Byte(byte_to_read),
 
