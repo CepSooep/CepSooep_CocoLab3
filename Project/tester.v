@@ -9,7 +9,7 @@ module tester
 // put the pins you need for the DE1 Soc
     
 );
-	input [1:0]SW;
+	input [3:2]SW;
 	input [24:24]GPIO_0;
 	input CLOCK_50;
 	output [24:18]GPIO_1;
@@ -20,9 +20,9 @@ module tester
 
 getDeviceID smth
 (
-	.switch(SW[0]),
+	.switch(SW[3]),
 	.clk(CLOCK_50),
-	.reset(SW[1]),
+	.reset(SW[2]),
 	.SPI_miso(GPIO_0[24]),
 	.SPI_mosi(GPIO_1[22]),
 	.outByte(outByte),
@@ -148,10 +148,10 @@ module getDeviceID
     
     
     SPI_Master_With_Single_CS 
-        #(.SPI_MODE(0),
-        .CLKS_PER_HALF_BIT(2),
+        #(.SPI_MODE(1),
+        .CLKS_PER_HALF_BIT(100),
         .MAX_BYTES_PER_CS(3),
-        .CS_INACTIVE_CLKS(2))
+        .CS_INACTIVE_CLKS(3))
         // set parameters based on experimentation.
 
         SPIBUS(
@@ -185,7 +185,7 @@ module getDeviceID
     always @(posedge clk or negedge reset)
     begin
         if (~reset) begin
-
+		  outByte <= 8'b00000000;
         currentState <= IDLE;
         end
         else begin
@@ -213,12 +213,13 @@ module getDeviceID
                 currentState <= WTSTATEONE;
                 else
                 currentState <= ADRSEND;
+					 byte_to_send        <= DEVID_AD;
+                byte_to_send_rdy    <= 1'b1;
             end
         ADRSEND:
             begin 
-                byte_to_send        <= DEVID_AD;
-                byte_to_send_rdy    <= 1'b1;
-                currentState           <= READDATA;
+					 byte_to_send_rdy    <= 1'b0;
+                currentState        <= READDATA;
             end
         READDATA:
             begin 
