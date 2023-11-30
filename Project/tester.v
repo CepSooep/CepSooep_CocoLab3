@@ -9,7 +9,7 @@ module tester
 // put the pins you need for the DE1 Soc
     
 );
-	input [3:2]SW;
+	input [1:0]SW;
 	input [24:24]GPIO_0;
 	input CLOCK_50;
 	output [24:18]GPIO_1;
@@ -17,12 +17,13 @@ module tester
 	output [6:0]HEX1;
 	
 	wire [7:0]outByte;
+	wire slowclk;
 
 getDeviceID smth
 (
-	.switch(SW[3]),
+	.switch(SW[0]),
 	.clk(CLOCK_50),
-	.reset(SW[2]),
+	.reset(SW[1]),
 	.SPI_miso(GPIO_0[24]),
 	.SPI_mosi(GPIO_1[22]),
 	.outByte(outByte),
@@ -33,6 +34,8 @@ assign GPIO_1[24] = CLOCK_50;
 
 	Hexadecimal_To_Seven_Segment smththre(.hex_number(outByte[3:0]), .seven_seg_display(HEX0));
 	Hexadecimal_To_Seven_Segment smthe(.hex_number(outByte[7:4]), .seven_seg_display(HEX1));
+	
+	
 endmodule
 
 /******************************************************************************
@@ -43,7 +46,36 @@ endmodule
  *                                                                            *
  ******************************************************************************/
 
-module Hexadecimal_To_Seven_Segment (
+module clk_divider
+#(parameter
+    integer DIV = 2
+)(
+    input wire clk_in,
+    input wire rst,
+    output reg clk_out
+);
+
+    localparam integer TC = (DIV / 2) - 1; // Terminal count
+    integer count; // 32 bits
+
+    wire terminate = (count == TC); // --> Reset counter, trigger clk_out edge
+
+    always @( posedge clk_in )
+    begin
+        if (rst | terminate)
+            count <= 0;
+        else
+            count <= count + 1;
+        
+        if (rst)
+            clk_out <= 0;
+        else if (terminate)
+            clk_out <= ~clk_out;
+    end
+
+endmodule // clk_divider
+ 
+ module Hexadecimal_To_Seven_Segment (
 	// Inputs
 	hex_number,
 
@@ -138,6 +170,8 @@ module getDeviceID
 	  assign readCmd = 8'b00001011;
     wire [7:0] DEVID_AD;
 	  assign DEVID_AD = 8'b00000000;
+	 wire [7:0] GARBAGE;
+	 assign GARBAGE = 8'b10010100;
 
 
     reg [7:0] byte_to_send;
@@ -148,10 +182,10 @@ module getDeviceID
     
     
     SPI_Master_With_Single_CS 
-        #(.SPI_MODE(1),
-        .CLKS_PER_HALF_BIT(100),
+        #(.SPI_MODE(0),
+        .CLKS_PER_HALF_BIT(5000),
         .MAX_BYTES_PER_CS(3),
-        .CS_INACTIVE_CLKS(3))
+        .CS_INACTIVE_CLKS(2))
         // set parameters based on experimentation.
 
         SPIBUS(
@@ -173,19 +207,22 @@ module getDeviceID
         .o_SPI_CS_n(CS_n)
     );
 
-    localparam IDLE         = 3'b000;
-    localparam STGONE       = 3'b001;
-    localparam CMDSEND      = 3'b010;
-    localparam WTSTATEONE   = 3'b011;
-    localparam ADRSEND      = 3'b100;
-    localparam WTSTATETWO   = 3'b111;
-    localparam READDATA     = 3'b101;
-    reg [2:0] currentState;
+    localparam IDLE         = 4'b0000;
+    localparam STGONE       = 4'b0001;
+    localparam CMDSEND      = 4'b0010;
+    localparam WTSTATEONE   = 4'b0011;
+    localparam ADRSEND      = 4'b0100;
+    localparam WTSTATETWO   = 4'b0111;
+    localparam READDATA     = 4'b0101;
+	 localparam READINGONE   = 4'b1000;
+	 localparam READINGTWO   = 4'b1001;
+	 localparam READINGTHREE = 4'b1010;
+    reg [3:0] currentState;
 
     always @(posedge clk or negedge reset)
     begin
         if (~reset) begin
-		  outByte <= 8'b00000000;
+
         currentState <= IDLE;
         end
         else begin
@@ -204,7 +241,6 @@ module getDeviceID
         CMDSEND:
             begin
                 byte_to_send_rdy <= 1'b0;
-                
                 currentState <= WTSTATEONE;
             end
         WTSTATEONE:
@@ -213,33 +249,50 @@ module getDeviceID
                 currentState <= WTSTATEONE;
                 else
                 currentState <= ADRSEND;
-					 byte_to_send        <= DEVID_AD;
-                byte_to_send_rdy    <= 1'b1;
             end
         ADRSEND:
             begin 
-					 byte_to_send_rdy    <= 1'b0;
-                currentState        <= READDATA;
+                byte_to_send        <= DEVID_AD;
+                byte_to_send_rdy    <= 1'b1;
+                currentState        <= WTSTATETWO;
             end
-        READDATA:
-            begin 
-                byte_to_send_rdy <= 1'b0;
-                if(~byte_to_read_rdy)
-                currentState <= READDATA;
-
-                else begin
-                outByte <= byte_to_read;
-                currentState <= WTSTATETWO;
-                end
-            end
+        
         WTSTATETWO:
             begin 
-                if(ready_for_next)
-                currentState <= IDLE;
-                else
-                currentState <= WTSTATETWO;
-            end 
+					byte_to_send_rdy <= 1'b0;
+					currentState <= READDATA;
+            end
+			READDATA:
+			begin
+				if(~ready_for_next)
+                currentState <= READDATA;
+            else
+					 currentState <= READINGONE;
+			end
+			
+			READINGONE:
+			begin
+				byte_to_send        <= GARBAGE;
+				byte_to_send_rdy    <= 1'b1;
+				currentState        <= READINGTWO;
+			end
+			READINGTWO:
+			begin
+				byte_to_send_rdy <= 1'b0;
+				currentState <= READINGTHREE;
+			end
+			READINGTHREE:
+			begin
+				if(~byte_to_read_rdy)
+				currentState <= READINGTHREE;
+				else begin
+				outByte <= byte_to_read;
+				currentState <= IDLE;
+				end
+			end
+//			
         endcase
+		  
         end
         
 
