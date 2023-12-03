@@ -7,7 +7,7 @@ module tester
 	GPIO_1,
 	CLOCK_50,
 	HEX0,
-	HEX1
+	turn
 // put the pins you need for the DE1 Soc
     
 );
@@ -16,10 +16,12 @@ module tester
 	input CLOCK_50;
 	output [24:18]GPIO_1;
 	output [6:0]HEX0;
-	output [6:0]HEX1;
+	output [2:0]turn;
 	
 	wire [7:0]outByte;
 	wire slowclk;
+	wire [3:0]mag;
+	wire sign;
 
 getDeviceID smth
 (
@@ -32,12 +34,14 @@ getDeviceID smth
 	.SPI_clk(GPIO_1[20]),
 	.CS_n(GPIO_1[18])
 );
+
+
+twosConverter(.twos(outByte), .magnitude(mag), .sign(sign));
+
+
+assign turn = (sign == 1'b0) ? ((mag > 4'b0010) ? (2'b10): (2'b00)) : ((mag < 4'b1110) ? (2'b01) : (2'b00));
 assign GPIO_1[24] = CLOCK_50;
-	//clk_divider #(.DIV(500))  clk(.clk_in(CLOCK_50), .rst(SW[1]), .clk_out(slowclk));
-	Hexadecimal_To_Seven_Segment smththre(.hex_number(outByte[3:0]), .seven_seg_display(HEX0));
-	Hexadecimal_To_Seven_Segment smthe(.hex_number(outByte[7:4]), .seven_seg_display(HEX1));
-	
-	
+	Hexadecimal_To_Seven_Segment smththre(.hex_number(turn), .seven_seg_display(HEX0));		
 endmodule
 
 /******************************************************************************
@@ -47,35 +51,22 @@ endmodule
  *      This module converts hexadecimal numbers for seven segment displays.  *
  *                                                                            *
  ******************************************************************************/
-
-module clk_divider
-#(parameter
-    integer DIV = 2
-)(
-    input wire clk_in,
-    input wire rst,
-    output reg clk_out
-);
-
-    localparam integer TC = (DIV / 2) - 1; // Terminal count
-    integer count; // 32 bits
-
-    wire terminate = (count == TC); // --> Reset counter, trigger clk_out edge
-
-    always @( posedge clk_in )
-    begin
-        if (rst | terminate)
-            count <= 0;
-        else
-            count <= count + 1;
-        
-        if (rst)
-            clk_out <= 0;
-        else if (terminate)
-            clk_out <= ~clk_out;
-    end
-
-endmodule // clk_divider
+ module twosConverter(
+	twos,
+	magnitude,
+	sign
+ );
+ input [7:0] twos;
+ output [3:0]magnitude;
+ output sign;
+ 
+ assign sign = twos[7];
+ assign magnitude = twos[3:0];
+ 
+ 
+ endmodule
+ 
+ 
  
  module Hexadecimal_To_Seven_Segment (
 	// Inputs
@@ -177,7 +168,7 @@ module getDeviceID
     wire [7:0] startaddress;
     assign startaddress = 8'b00101101;
     wire [7:0] DEVID_AD;
-	  assign DEVID_AD = 8'b00001000;
+	  assign DEVID_AD = 8'b00001111;
 
 // write values
 	  wire [7:0] wakecmd;
@@ -279,11 +270,9 @@ module getDeviceID
 							byte_to_send     <= writeCmd;
 							currentState <= STARTUPONE;
 						end
-						else
-						currentState <= IDLE;
                 end
                 else
-                currentState <= IDLE;
+						currentState <= IDLE;
             end
         STARTUPONE:
             begin
