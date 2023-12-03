@@ -2,7 +2,22 @@ module combined(
 	input CLOCK_50,
 	input [1:0] KEY, //KEY0 reset KEY1 for endgame
 
+	input				AUD_ADCDAT;
+	inout				AUD_BCLK;
+inout				AUD_ADCLRCK;
+inout				AUD_DACLRCK;
+inout				FPGA_I2C_SDAT;
+
+
+output				AUD_XCK;
+output				AUD_DACDAT;
+output				FPGA_I2C_SCLK;
   
+inout PS2_CLK;
+inout PS2_DAT;
+
+output HEX0;
+output HEX1;
 	output [9:0] VGA_R,
 	output [9:0] VGA_G,
 	output [9:0] VGA_B,
@@ -12,6 +27,56 @@ module combined(
 	output VGA_SYNC,
 	output VGA_CLK	
 )
+
+
+DE1_SoC_Audio_Example AUDIO(
+
+.CLOCK_50(CLOCK_50),
+.KEY(4'b0000),
+.SW(4'b0000),
+.AUD_ADCDAT(AUD_ADCDAT),
+
+// Bidirectionals
+.AUD_BCLK(AUD_BCLK),
+.AUD_ADCLRCK(AUD_ADCLRCK),
+.AUD_DACLRCK(AUD_DACLRCK),
+.FPGA_I2C_SDAT(FPGA_I2C_SDAT),
+
+// Outputs
+.AUD_XCK(AUD_XCK),
+.AUD_DACDAT(AUD_DACDAT),
+.FPGA_I2C_SCLK(FPGA_I2C_SCLK),
+);
+
+wire [1:0] turn;
+tester ACCELEROMETER
+(
+	2'b11,
+   GPIO_0,
+	GPIO_1,
+	CLOCK_50,
+	HEX0,
+	turn
+)
+// put the pins you need for the DE1 Soc
+    
+TopLevel Keyboard(
+    // Inputs
+	CLOCK_50,
+	KEY[0],//for reset
+
+	// Bidirectionals
+	PS2_CLK,
+	PS2_DAT,
+	
+	// Outputs
+	HEX0,
+	HEX1
+);
+
+
+
+
 
 
 
@@ -47,7 +112,7 @@ wire oPlot;
 	.endGame(KEY[1]),
   .forward(),
   .backward(),
-  .turn(),
+  .turn(turn),
   .oX(oX),
   .oY(oY),
   .oColour(oColour),
