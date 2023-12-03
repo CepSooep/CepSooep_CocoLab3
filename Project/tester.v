@@ -16,7 +16,7 @@ module tester
 	input CLOCK_50;
 	output [24:18]GPIO_1;
 	output [6:0]HEX0;
-	output [2:0]turn;
+	output [1:0]turn;
 	
 	wire [7:0]outByte;
 	wire slowclk;
