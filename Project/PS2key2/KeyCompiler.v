@@ -1,4 +1,4 @@
-module TopLevel (
+module KeyCompiler (
 	// Inputs
 	CLOCK_50,
 	KEY,
