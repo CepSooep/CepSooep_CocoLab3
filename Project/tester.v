@@ -1,3 +1,5 @@
+// SHIT
+
 module tester
 (
 	SW,
@@ -9,7 +11,7 @@ module tester
 // put the pins you need for the DE1 Soc
     
 );
-	input [1:0]SW;
+	input [6:5]SW;
 	input [24:24]GPIO_0;
 	input CLOCK_50;
 	output [24:18]GPIO_1;
@@ -21,9 +23,9 @@ module tester
 
 getDeviceID smth
 (
-	.switch(SW[0]),
+	.switch(SW[5]),
 	.clk(CLOCK_50),
-	.reset(SW[1]),
+	.reset(SW[6]),
 	.SPI_miso(GPIO_0[24]),
 	.SPI_mosi(GPIO_1[22]),
 	.outByte(outByte),
@@ -31,7 +33,7 @@ getDeviceID smth
 	.CS_n(GPIO_1[18])
 );
 assign GPIO_1[24] = CLOCK_50;
-
+	//clk_divider #(.DIV(500))  clk(.clk_in(CLOCK_50), .rst(SW[1]), .clk_out(slowclk));
 	Hexadecimal_To_Seven_Segment smththre(.hex_number(outByte[3:0]), .seven_seg_display(HEX0));
 	Hexadecimal_To_Seven_Segment smthe(.hex_number(outByte[7:4]), .seven_seg_display(HEX1));
 	
@@ -165,15 +167,25 @@ module getDeviceID
     wire [7:0] byte_to_read;
     wire [1:0]number_bytes_read;
    
-
+// commands
     wire [7:0] readCmd;
 	  assign readCmd = 8'b00001011;
+    wire [7:0] writeCmd;
+    assign writeCmd = 8'b00001010;
+
+// addresses  
+    wire [7:0] startaddress;
+    assign startaddress = 8'b00101101;
     wire [7:0] DEVID_AD;
-	  assign DEVID_AD = 8'b00000000;
-	 wire [7:0] GARBAGE;
-	 assign GARBAGE = 8'b10010100;
+	  assign DEVID_AD = 8'b00001000;
 
+// write values
+	  wire [7:0] wakecmd;
+	  assign wakecmd = 8'b00001010;
+    wire [7:0] GARBAGE;
+	  assign GARBAGE = 8'b10010100;
 
+// bytes given
     reg [7:0] byte_to_send;
     reg byte_to_send_rdy;
     wire ready_for_next;
@@ -183,9 +195,9 @@ module getDeviceID
     
     SPI_Master_With_Single_CS 
         #(.SPI_MODE(0),
-        .CLKS_PER_HALF_BIT(5000),
+        .CLKS_PER_HALF_BIT(500000),
         .MAX_BYTES_PER_CS(3),
-        .CS_INACTIVE_CLKS(2))
+        .CS_INACTIVE_CLKS(1))
         // set parameters based on experimentation.
 
         SPIBUS(
@@ -207,22 +219,53 @@ module getDeviceID
         .o_SPI_CS_n(CS_n)
     );
 
-    localparam IDLE         = 4'b0000;
-    localparam STGONE       = 4'b0001;
-    localparam CMDSEND      = 4'b0010;
-    localparam WTSTATEONE   = 4'b0011;
-    localparam ADRSEND      = 4'b0100;
-    localparam WTSTATETWO   = 4'b0111;
-    localparam READDATA     = 4'b0101;
-	 localparam READINGONE   = 4'b1000;
-	 localparam READINGTWO   = 4'b1001;
-	 localparam READINGTHREE = 4'b1010;
-    reg [3:0] currentState;
+    localparam IDLE         = 8'b00000000;
+
+    localparam STGONE       = 8'b00000001;
+    localparam CMDSEND      = 8'b00000010;
+    localparam WTSTATEONE   = 8'b00000011;
+
+    localparam ADRSEND      = 8'b00000100;
+    localparam WTSTATETWO   = 8'b00000111;
+    localparam READDATA     = 8'b00000101;
+
+	  localparam READINGONE   = 8'b00001000;
+	  localparam READINGTWO   = 8'b00001001;
+	  localparam READINGTHREE = 8'b00001010;
+
+    localparam STARTUPONE    = 8'b00001011;
+    localparam STARTUPTWO    = 8'b00001100;
+    localparam STARTUPTHREE  = 8'b00001101;
+
+    localparam STARTUPADDONE = 8'b00001110;
+    localparam STARTUPADDTWO = 8'b00001111;
+    localparam STARTUPADDTHR = 8'b00010000;
+
+    localparam STARTUPVALONE = 8'b00010001;
+    localparam STARTUPVALTWO = 8'b00010010;
+    localparam STARTUPVALTHR = 8'b00010011;
+	 
+	 localparam SETUPONE    = 8'b00010100;
+    localparam SETUPTWO    = 8'b00010101;
+    localparam SETUPTHREE  = 8'b00010110;
+
+    localparam SETUPADDONE = 8'b00010111;
+    localparam SETUPADDTWO = 8'b00011000;
+    localparam SETUPADDTHR = 8'b00011001;
+
+    localparam SETUPVALONE = 8'b00011010;
+    localparam SETUPVALTWO = 8'b00011011;
+    localparam SETUPVALTHR = 8'b00011100;
+	 
+	 localparam INFINITE = 8'b111111111;
+
+
+    reg [7:0] currentState;
 
     always @(posedge clk or negedge reset)
     begin
         if (~reset) begin
-
+		  outByte <= 8'b00000000;
         currentState <= IDLE;
         end
         else begin
@@ -230,14 +273,79 @@ module getDeviceID
         IDLE:
             begin
                 if(switch) begin
-                byte_to_send_rdy <= 1'b1;
-                num_byte_read    <= 2'b11;
-                byte_to_send     <= readCmd;
-                currentState <= CMDSEND;
+						if(ready_for_next)begin
+							byte_to_send_rdy <= 1'b1;
+							num_byte_read    <= 2'b11;
+							byte_to_send     <= writeCmd;
+							currentState <= STARTUPONE;
+						end
+						else
+						currentState <= IDLE;
                 end
                 else
                 currentState <= IDLE;
             end
+        STARTUPONE:
+            begin
+                byte_to_send_rdy <= 1'b0;
+                currentState <= STARTUPTWO;
+            end
+        STARTUPTWO:
+            begin
+                if(~ready_for_next)
+                currentState <= STARTUPTWO;
+                else
+                currentState <= STARTUPTHREE;
+            end
+        STARTUPTHREE:
+            begin
+                byte_to_send        <= startaddress;
+                byte_to_send_rdy    <= 1'b1;
+                currentState        <= STARTUPADDONE;
+            end
+        
+        
+        STARTUPADDONE:
+            begin
+                byte_to_send_rdy <= 1'b0;
+                currentState <= STARTUPADDTWO;
+            end
+        STARTUPADDTWO:
+            begin
+                if(~ready_for_next)
+                currentState <= STARTUPADDTWO;
+                else
+                currentState <= STARTUPADDTHR;
+            end
+        STARTUPADDTHR:
+            begin
+                byte_to_send        <= wakecmd;
+                byte_to_send_rdy    <= 1'b1;
+                currentState        <= STARTUPVALONE;
+            end
+        
+
+        STARTUPVALONE:
+             begin
+                byte_to_send_rdy <= 1'b0;
+                currentState <= STARTUPVALTWO;
+            end
+        STARTUPVALTWO:
+              begin
+                if(~ready_for_next)
+                currentState <= STARTUPVALTWO;
+                else
+                currentState <= STARTUPVALTHR;
+              end
+        STARTUPVALTHR:
+              begin
+                byte_to_send        <= readCmd;
+                byte_to_send_rdy    <= 1'b1;
+					 num_byte_read    <= 2'b11;
+                currentState        <= CMDSEND;
+              end
+        
+        
         CMDSEND:
             begin
                 byte_to_send_rdy <= 1'b0;
@@ -257,46 +365,48 @@ module getDeviceID
                 currentState        <= WTSTATETWO;
             end
         
+
         WTSTATETWO:
             begin 
-					byte_to_send_rdy <= 1'b0;
-					currentState <= READDATA;
+					    byte_to_send_rdy <= 1'b0;
+					    currentState <= READDATA;
             end
 			READDATA:
-			begin
-				if(~ready_for_next)
-                currentState <= READDATA;
-            else
-					 currentState <= READINGONE;
-			end
-			
-			READINGONE:
-			begin
-				byte_to_send        <= GARBAGE;
-				byte_to_send_rdy    <= 1'b1;
-				currentState        <= READINGTWO;
-			end
-			READINGTWO:
-			begin
-				byte_to_send_rdy <= 1'b0;
-				currentState <= READINGTHREE;
-			end
-			READINGTHREE:
-			begin
-				if(~byte_to_read_rdy)
-				currentState <= READINGTHREE;
-				else begin
-				outByte <= byte_to_read;
-				currentState <= IDLE;
-				end
-			end
-//			
-        endcase
-		  
-        end
-        
+			      begin
+				      if(~ready_for_next)
+              currentState <= READDATA;
+              else
+					    currentState <= READINGONE;
+			      end
+        READINGONE:
+            begin
+              byte_to_send        <= GARBAGE;
+              byte_to_send_rdy    <= 1'b1;
+              currentState        <= READINGTWO;
+            end
 
-        
+            
+        READINGTWO:
+        begin
+          byte_to_send_rdy <= 1'b0;
+          if(~byte_to_read_rdy)
+          currentState <= READINGTWO;
+          else begin
+          outByte <= byte_to_read;
+			 currentState <= READINGTHREE;
+			 end
+			end
+
+        READINGTHREE:
+        begin
+          if(~ready_for_next)
+				currentState <= READINGTHREE;
+          else
+				currentState <= STARTUPVALTHR;
+        end
+      endcase
+		  
+      end 
     end
 
 
