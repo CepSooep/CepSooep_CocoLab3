@@ -49,9 +49,9 @@ reg temporary;
 
 // State Machine Registers
 
-localparam FORWARD 		= 8'b01110011;
+localparam FORWARD 	= 8'b01110011;
 localparam BACKWARDS 	= 8'b01110010;
-localparam BREAK			= 8'b11110000;
+localparam BREAK	= 8'b11110000;
 
 reg breaker;
 
@@ -65,31 +65,18 @@ reg [2:0] state;
  *                             Sequential Logic                              *
  *****************************************************************************/
 
-always @(posedge CLOCK_50)
+always @(posedge ps2_key_pressed)
 begin
-	if (reset == 1'b0) begin
-		accel <= 8'h00;
-		breaker <= 1'b0;
+	if(ps2_key_data == FORWARD)begin
+		accel <= 2'b10;
 	end
-	else begin
-		if(ps2_key_pressed && breaker == 1'b1) begin
-			breaker != 1'b0
-		end
-		else if(breaker == 1'b0) begin
-			if(ps2_key_data == FORWARD)begin
-				accel <= 2'b10;
-				breaker <= 1'b0;
-			end
-			if(ps2_key_data == BACKWARDS) begin
-				accel <= 2'b01;
-				breaker <= 1'b0;
-			end	
-		end
-		else if (ps2_key_data == BREAK) begin
-			accel <= 2'b00;
-			breaker <= 1'b1;
-		end	
-	end
+	else if(ps2_key_data == BACKWARDS) begin
+		accel <= 2'b01;
+	end	
+	else if (ps2_key_data == BREAK) begin
+		accel <= 2'b00;
+	end	
+end
 end
 
 /*****************************************************************************
