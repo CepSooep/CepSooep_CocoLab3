@@ -2,8 +2,9 @@
 
 module tester
 (
-	SW, // give it value of 2'b11
-   GPIO_0,
+	start, // give it value of 2'b11
+	reset,
+        GPIO_0,
 	GPIO_1,
 	CLOCK_50,
 	HEX0,
@@ -11,7 +12,8 @@ module tester
 // put the pins you need for the DE1 Soc
     
 );
-	input [6:5]SW;
+	input start
+	input reset
 	input [24:24]GPIO_0;
 	input CLOCK_50;
 	output [24:18]GPIO_1;
@@ -25,9 +27,9 @@ module tester
 
 getDeviceID smth
 (
-	.switch(SW[5]),
+	.switch(start),
 	.clk(CLOCK_50),
-	.reset(SW[6]),
+	.reset(reset),
 	.SPI_miso(GPIO_0[24]),
 	.SPI_mosi(GPIO_1[22]),
 	.outByte(outByte),
