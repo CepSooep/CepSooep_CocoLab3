@@ -2,14 +2,14 @@
 module PS2WithBreakPt (
 	// Inputs
 	CLOCK_50,
-	KEY,
+	reset,
 
 	// Bidirectionals
 	PS2_CLK,
 	PS2_DAT,
 	
 	// Outputs
-	HEX0,
+	HEX1,
 	accel
 );
 
@@ -24,14 +24,14 @@ module PS2WithBreakPt (
 
 // Inputs
 input				CLOCK_50;
-input		[3:0]	KEY;
+input			reset;
 
 // Bidirectionals
 inout				PS2_CLK;
 inout				PS2_DAT;
 
 // Outputs
-output		[6:0]	HEX0;
+output		[6:0]	HEX1;
 output 	reg [1:0]	accel;
 
 /*****************************************************************************
@@ -53,7 +53,7 @@ localparam FORWARD 		= 8'b01110011;
 localparam BACKWARDS 	= 8'b01110010;
 localparam BREAK			= 8'b11110000;
 
-reg break;
+reg breaker;
 
 reg [2:0] state;
 /*****************************************************************************
@@ -67,38 +67,28 @@ reg [2:0] state;
 
 always @(posedge CLOCK_50)
 begin
-	if (KEY[0] == 1'b0) begin
+	if (reset == 1'b0) begin
 		accel <= 8'h00;
-		break <= 1'b0;
+		breaker <= 1'b0;
 	end
-	
-	
-	
 	else begin
-	
-		case (state)
-		2'b01: begin
-			
+		if(ps2_key_pressed && breaker == 1'b1) begin
+			breaker != 1'b0
 		end
-		
-		2'b10: begin
-			if(ps2_key_pressed && break != 1'b1) begin
-				if(ps2_key_data == FORWARD)begin
-						accel <= 2'b10;
-						break <= 1'b0;
-				end
-				if(ps2_key_data == BACKWARDS) begin
-						accel <= 2'b01;
-						break <= 1'b0;
-				end	
+		else if(breaker == 1'b0) begin
+			if(ps2_key_data == FORWARD)begin
+				accel <= 2'b10;
+				breaker <= 1'b0;
 			end
-			else if (ps2_key_data == BREAK) begin
-				accel <= 2'b00;
-				break <= 1'b1;
-			end
-			state <= 2'b10;
+			if(ps2_key_data == BACKWARDS) begin
+				accel <= 2'b01;
+				breaker <= 1'b0;
+			end	
 		end
-			
+		else if (ps2_key_data == BREAK) begin
+			accel <= 2'b00;
+			breaker <= 1'b1;
+		end	
 	end
 end
 
@@ -114,7 +104,7 @@ end
 PS2_Controller PS2 (
 	// Inputs
 	.CLOCK_50				(CLOCK_50),
-	.reset				(~KEY[0]),
+	.reset				(~reset),
 
 	// Bidirectionals
 	.PS2_CLK			(PS2_CLK),
@@ -132,7 +122,7 @@ Hexadecimal_To_Seven_Segment Segment0 (
 	// Bidirectional
 
 	// Outputs
-	.seven_seg_display	(HEX0)
+	.seven_seg_display	(HEX1)
 );
 
 
