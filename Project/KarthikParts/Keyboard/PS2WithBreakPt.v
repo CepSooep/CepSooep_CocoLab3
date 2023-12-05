@@ -66,7 +66,12 @@ reg [3:0] state;
  *****************************************************************************/
 
 	always @(posedge CLOCK_50)
-begin
+	begin
+	if(reset) begin
+		state <= 4'b0000;
+		accel <= 4'b0000;
+	end
+	else begin
 	case(state)
 		4'b0000: begin
 			if(ps2_key_pressed) begin
@@ -101,7 +106,7 @@ begin
 			state <= 4'b0000;
 			accel <= 4'b0000;
 		end
-
+	end
 	
 end
 end
