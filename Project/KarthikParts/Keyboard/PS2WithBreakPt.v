@@ -129,7 +129,7 @@ PS2_Controller PS2 (
 	.received_data_en	(ps2_key_pressed)
 );
 
-Hexadecimal_To_Seven_Segment Segment0 (
+Hexadecimal_To_Seven_Segment display1(
 	// Inputs
 	.hex_number			(accel),
 
