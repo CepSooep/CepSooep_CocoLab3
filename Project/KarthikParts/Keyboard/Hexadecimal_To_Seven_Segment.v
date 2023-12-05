@@ -55,23 +55,23 @@ output		[6:0]	seven_seg_display;
  *                            Combinational Logic                            *
  *****************************************************************************/
 
-assign seven_seg_display =
-		({7{(hex_number == 4'h0)}} & 7'b1000000) |
-		({7{(hex_number == 4'h1)}} & 7'b1111001) |
-		({7{(hex_number == 4'h2)}} & 7'b0100100) |
-		({7{(hex_number == 4'h3)}} & 7'b0110000) |
-		({7{(hex_number == 4'h4)}} & 7'b0011001) |
-		({7{(hex_number == 4'h5)}} & 7'b0010010) |
-		({7{(hex_number == 4'h6)}} & 7'b0000010) |
-		({7{(hex_number == 4'h7)}} & 7'b1111000) |
-		({7{(hex_number == 4'h8)}} & 7'b0000000) |
-		({7{(hex_number == 4'h9)}} & 7'b0010000) |
-		({7{(hex_number == 4'hA)}} & 7'b0001000) |
-		({7{(hex_number == 4'hB)}} & 7'b0000011) |
-		({7{(hex_number == 4'hC)}} & 7'b1000110) |
-		({7{(hex_number == 4'hD)}} & 7'b0100001) |
-		({7{(hex_number == 4'hE)}} & 7'b0000110) |
-		({7{(hex_number == 4'hF)}} & 7'b0001110); 
+	wire c0, c1, c2, c3; //for the ease of typing (they are not wires)
+	assign c0 = hex_number[0];
+	assign c1 = hex_number[1];
+	assign c2 = hex_number[2];
+	assign c3 = hex_number[3];
+
+	wire [6:0] inverted; //I messed up, everything is inverted
+
+	assign inverted[0] = ~c2&~c0 | ~c3&c2&c0 | c2&c1 | c3&~c2&~c1 | c3&~c0 | ~c3&c1;
+	assign inverted[1] = ~c3&~c1&~c0 | ~c2&~c1 | ~c2&~c0 | ~c3&c1&c0 | c3&~c1&c0;
+	assign inverted[2] = ~c2&~c1 | ~c2&c0 | ~c1&c0 | ~c3&c2 | c3&~c2;
+	assign inverted[3] = ~c3&~c2&~c0 | ~c2&c1&c0 | c2&~c1&c0 | c2&c1&~c0 | c3&~c1;
+	assign inverted[4] = ~c2&~c0 | c1&~c0 | c3&c1 |c3&c2;
+	assign inverted[5] = ~c1&~c0 | ~c3&c2&~c1 | c2&~c0 | c3&~c2 | c3&c1;
+	assign inverted[6] = ~c2&c1 | c1&~c0 | ~c3&c2&~c1 | c3&~c2 | c3&c0;
+	
+	assign seven_seg_display = ~inverted;
 
 /*****************************************************************************
  *                              Internal Modules                             *
