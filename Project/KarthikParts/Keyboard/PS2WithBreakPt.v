@@ -55,7 +55,7 @@ localparam BREAK	= 8'b11110000;
 
 reg breaker;
 
-reg [2:0] state;
+reg [3:0] state;
 /*****************************************************************************
  *                         Finite State Machine(s)                           *
  *****************************************************************************/
@@ -65,17 +65,44 @@ reg [2:0] state;
  *                             Sequential Logic                              *
  *****************************************************************************/
 
-always @(posedge ps2_key_pressed)
+	always @(posedge CLOCK_50)
 begin
-	if(ps2_key_data == FORWARD)begin
-		accel <= 2'b10;
-	end
-	else if(ps2_key_data == BACKWARDS) begin
-		accel <= 2'b01;
-	end	
-	else if (ps2_key_data == BREAK) begin
-		accel <= 2'b00;
-	end	
+	case(state)
+		4'b0000: begin
+			if(ps2_key_pressed) begin
+				if(ps2_key_data == FORWARD)begin
+					accel <= 2'b10;
+					state <= 4'b0001
+				end
+				else if(ps2_key_data == BACKWARDS) begin
+					accel <= 2'b01;
+					state <= 4'b0001
+				end
+			end
+			else begin 
+				state <= 4'b0000;
+			end
+		end
+		4'b0001: begin
+			if (ps2_key_data == BREAK) begin
+				state <= 4'b0010;
+			end	
+		end
+		4'b0010: begin
+			if (ps2_key_pressed) begin
+				accel <= 2'b00;
+				state <= 4'b0010;
+			end
+			else begin
+				state <= 4'b0000;
+			end 
+		end
+		default: begin
+			state <= 4'b0000;
+			accel <= 4'b0000;
+		end
+
+	
 end
 end
 
